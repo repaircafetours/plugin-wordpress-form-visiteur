@@ -1,2 +1,2 @@
 # wordpress
-Plugin wordpress d'un formulaire popur les visiteur de l'association repair cafe tours
+Plugin wordpress d'un formulaire pour les visiteurs de l'association repair cafe tours
