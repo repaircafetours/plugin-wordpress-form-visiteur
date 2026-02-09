@@ -145,6 +145,27 @@
     display: none;
 }
 
+.postal-suggestions {
+    position: relative;
+    margin-top: 6px;
+    border: 1px solid #ddd;
+    background: #fff;
+    max-height: 200px;
+    overflow-y: auto;
+    border-radius: 6px;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.08);
+    z-index: 999;
+}
+
+.postal-suggestion {
+    padding: 8px 12px;
+    cursor: pointer;
+}
+
+.postal-suggestion:hover {
+    background: #f0f0f0;
+}
+
 .form-message.success {
     background: #d4edda;
     color: #155724;

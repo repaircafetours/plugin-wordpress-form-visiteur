@@ -20,6 +20,7 @@ class Formulaire_Visiteur {
         add_action('wp_ajax_save_visitor', array($this, 'save_visitor'));
         add_action('wp_ajax_nopriv_save_visitor', array($this, 'save_visitor'));
         add_action('admin_menu', array($this, 'add_admin_menu'));
+        add_action('admin_init', array($this, 'create_table'));
         register_activation_hook(__FILE__, array($this, 'create_table'));
     }
     
@@ -33,8 +34,10 @@ class Formulaire_Visiteur {
             civilite varchar(10) NOT NULL,
             nom varchar(100) NOT NULL,
             prenom varchar(100) NOT NULL,
-            email varchar(100) NOT NULL,
+            email varchar(100),
+            numero_telephone varchar(20),
             objet varchar(255) NOT NULL,
+            postal_code varchar(10) NOT NULL DEFAULT '',
             est_electrique varchar(3) NOT NULL,
             date_creation datetime DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY  (id)
@@ -70,6 +73,10 @@ class Formulaire_Visiteur {
                             <input type="radio" name="civilite" value="Mr" required>
                             <span>Mr</span>
                         </label>
+                        <label class="radio-label">
+                            <input type="radio" name="civilite" value="Autre" required>
+                            <span>Autre</span>
+                        </label>
                     </div>
                 </div>
                 <button class="btn-suivant" onclick="nextStep(2)">Suivant</button>
@@ -98,7 +105,11 @@ class Formulaire_Visiteur {
                 <div class="form-content">
                     <div class="form-group">
                         <label class="form-label">Adresse email:</label>
-                        <input type="email" id="email" class="form-input" required>
+                        <input type="email" id="email" class="form-input" placeholder="">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Numéro de téléphone (optionnel si email fourni):</label>
+                        <input type="text" id="numero_telephone" class="form-input" placeholder="" autocomplete="off">
                     </div>
                 </div>
                 <div class="form-buttons">
@@ -111,8 +122,13 @@ class Formulaire_Visiteur {
                 <h2 class="form-title">Formulaire Visiteur</h2>
                 <div class="form-content">
                     <div class="form-group">
-                        <label class="form-label">Objet :</label>
-                        <input type="text" id="objet" class="form-input" required>
+                        <label class="form-label">Catégorie d'objet :</label>
+                        <select id="objet" class="form-input" required>
+                            <option value="">-- Sélectionnez une catégorie --</option>
+                            <option value="électroménagé">Électroménagé</option>
+                            <option value="vêtement">Vêtement</option>
+                            <option value="informatique">Informatique</option>
+                        </select>
                     </div>
                 </div>
                 <div class="form-buttons">
@@ -122,6 +138,21 @@ class Formulaire_Visiteur {
             </div>
 
             <div class="form-card" data-step="5">
+                <h2 class="form-title">Formulaire Visiteur</h2>
+                <div class="form-content">
+                    <div class="form-group">
+                        <label class="form-label">Code postal :</label>
+                        <input type="text" id="postal_code" class="form-input" placeholder="Ex: 37000" required autocomplete="off">
+                        <div id="postalSuggestions" class="postal-suggestions"></div>
+                    </div>
+                </div>
+                <div class="form-buttons">
+                    <button class="btn-retour" onclick="prevStep(4)">Retour</button>
+                    <button class="btn-suivant" onclick="nextStep(6)">Suivant</button>
+                </div>
+            </div>
+
+            <div class="form-card" data-step="6">
                 <h2 class="form-title">Formulaire Visiteur</h2>
                 <div class="form-content">
                     <label class="form-label">L'objet est-il électrique ? :</label>
@@ -137,10 +168,11 @@ class Formulaire_Visiteur {
                     </div>
                 </div>
                 <div class="form-buttons">
-                    <button class="btn-retour" onclick="prevStep(4)">Retour</button>
+                    <button class="btn-retour" onclick="prevStep(5)">Retour</button>
                     <button class="btn-suivant" onclick="submitForm()">Suivant</button>
                 </div>
             </div>
+
 
             <div class="form-message" id="formMessage"></div>
         </div>
@@ -154,12 +186,23 @@ class Formulaire_Visiteur {
         global $wpdb;
         $table_name = $wpdb->prefix . 'visiteurs';
         
+        // Validation : au moins l'email ou le téléphone doit être fourni
+        $email = !empty($_POST['email']) ? sanitize_email($_POST['email']) : '';
+        $telephone = !empty($_POST['numero_telephone']) ? sanitize_text_field($_POST['numero_telephone']) : '';
+        
+        if (empty($email) && empty($telephone)) {
+            wp_send_json_error(array('message' => 'Veuillez fournir au moins une adresse email ou un numéro de téléphone.'));
+            wp_die();
+        }
+        
         $data = array(
             'civilite' => sanitize_text_field($_POST['civilite']),
             'nom' => sanitize_text_field(strtoupper($_POST['nom'])),
             'prenom' => sanitize_text_field($_POST['prenom']),
-            'email' => sanitize_email($_POST['email']),
+            'email' => $email,
+            'numero_telephone' => $telephone,
             'objet' => sanitize_text_field($_POST['objet']),
+            'postal_code' => sanitize_text_field($_POST['postal_code']),
             'est_electrique' => sanitize_text_field($_POST['est_electrique'])
         );
         
@@ -199,7 +242,9 @@ class Formulaire_Visiteur {
                         <th>Nom</th>
                         <th>Prénom</th>
                         <th>Email</th>
-                        <th>Objet</th>
+                        <th>Téléphone</th>
+                        <th>Code postal</th>
+                        <th>Catégorie</th>
                         <th>Électrique</th>
                         <th>Date</th>
                     </tr>
@@ -212,6 +257,8 @@ class Formulaire_Visiteur {
                         <td><?php echo esc_html($visiteur->nom); ?></td>
                         <td><?php echo esc_html($visiteur->prenom); ?></td>
                         <td><?php echo esc_html($visiteur->email); ?></td>
+                        <td><?php echo esc_html($visiteur->numero_telephone); ?></td>
+                        <td><?php echo esc_html($visiteur->postal_code); ?></td>
                         <td><?php echo esc_html($visiteur->objet); ?></td>
                         <td><?php echo esc_html($visiteur->est_electrique); ?></td>
                         <td><?php echo esc_html($visiteur->date_creation); ?></td>
