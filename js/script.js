@@ -69,6 +69,15 @@ function nextStep(step) {
         formDataObj.postal_code = postal;
     }
     
+    if (currentStep === 7) {
+        const description_probleme = document.getElementById('description_probleme').value.trim();
+        if (!description_probleme) {
+            alert('Veuillez fournir une description du problème');
+            return;
+        }
+        formDataObj.description_probleme = description_probleme;
+    }
+
     // Passer à l'étape suivante
     currentCard.classList.remove('active');
     const nextCard = document.querySelector(`[data-step="${step}"]`);
@@ -219,6 +228,13 @@ function submitForm() {
     }
     formDataObj.est_electrique = electrique.value;
     
+    const descEl = document.getElementById('description_probleme');
+    if (!descEl || !descEl.value.trim()) {
+        alert('Veuillez fournir une description du problème');
+        return;
+    }
+    formDataObj.description_probleme = descEl.value.trim();
+
     // Soumettre via AJAX
     jQuery.ajax({
         url: formData.ajax_url,
@@ -233,7 +249,8 @@ function submitForm() {
             numero_telephone: formDataObj.numero_telephone,
             objet: formDataObj.objet,
             postal_code: formDataObj.postal_code,
-            est_electrique: formDataObj.est_electrique
+            est_electrique: formDataObj.est_electrique,
+            description_probleme: formDataObj.description_probleme
         },
 
         success: function(response) {
