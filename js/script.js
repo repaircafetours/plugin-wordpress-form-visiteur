@@ -1,280 +1,377 @@
-let formDataObj = {};
+/**
+ * Affiche un message d'erreur rouge sous un champ donné.
+ * @param {string} fieldId   - id du champ HTML
+ * @param {string} message   - texte de l'erreur (vide = effacer)
+ */
+function setFieldError(fieldId, message) {
+    var field = document.getElementById(fieldId);
+    if (!field) return;
 
-function nextStep(step) {
-    const currentCard = document.querySelector('.form-card.active');
-    
-    // Validation selon l'étape actuelle
-    const currentStep = parseInt(currentCard.dataset.step);
-    
-    if (currentStep === 1) {
-        const civilite = document.querySelector('input[name="civilite"]:checked');
-        if (!civilite) {
-            alert('Veuillez sélectionner une civilité');
-            return;
-        }
-        formDataObj.civilite = civilite.value;
-    }
-    
-    if (currentStep === 2) {
-        const nom = document.getElementById('nom').value.trim();
-        const prenom = document.getElementById('prenom').value.trim();
-        if (!nom || !prenom) {
-            alert('Veuillez remplir tous les champs');
-            return;
-        }
-        formDataObj.nom = nom.toUpperCase();
-        formDataObj.prenom = prenom;
-    }
-    
-    if (currentStep === 3) {
-        const email = document.getElementById('email').value.trim();
-        const telephone = document.getElementById('numero_telephone').value.trim();
-        
-        // Valider que au moins l'email ou le téléphone est fourni
-        if (!email && !telephone) {
-            alert('Veuillez fournir au moins une adresse email ou un numéro de téléphone');
-            return;
-        }
-        
-        // Valider l'email s'il est fourni
-        if (email && !validateEmail(email)) {
-            alert('Veuillez entrer une adresse email valide');
-            return;
-        }
-        
-        if (telephone && !validateNumTel(telephone)) {
-            alert('Veuillez entrer un numéro de téléphone valide (10 chiffres)');
-            return;
-        }
-
-        formDataObj.email = email;
-        formDataObj.numero_telephone = telephone;
-    }
-    
-    if (currentStep === 4) {
-        const objet = document.getElementById('objet').value.trim();
-        if (!objet) {
-            alert('Veuillez sélectionner une catégorie');
-            return;
-        }
-        formDataObj.objet = objet;
+    var errorId  = fieldId + '_error';
+    var errorEl  = document.getElementById(errorId);
+    if (!errorEl) {
+        errorEl    = document.createElement('span');
+        errorEl.id = errorId;
+        errorEl.className = 'field-error';
+        field.parentNode.insertBefore(errorEl, field.nextSibling);
     }
 
-    if (currentStep === 5) {
-        const postal = document.getElementById('postal_code').value.trim();
-        if (!isValidFrenchPostalCode(postal)) {
-            alert('Veuillez sélectionner un code postal valide');
-            return;
-        }
-        formDataObj.postal_code = postal;
-    }
-    
-    if (currentStep === 7) {
-        const description_probleme = document.getElementById('description_probleme').value.trim();
-        if (!description_probleme) {
-            alert('Veuillez fournir une description du problème');
-            return;
-        }
-        formDataObj.description_probleme = description_probleme;
-    }
-
-    // Passer à l'étape suivante
-    currentCard.classList.remove('active');
-    const nextCard = document.querySelector(`[data-step="${step}"]`);
-    nextCard.classList.add('active');
-    
-    // Scroll to top
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-function prevStep(step) {
-    const currentCard = document.querySelector('.form-card.active');
-    currentCard.classList.remove('active');
-    
-    const prevCard = document.querySelector(`[data-step="${step}"]`);
-    prevCard.classList.add('active');
-    
-    // Restaurer les valeurs précédemment saisies
-    if (step === 2 && formDataObj.nom) {
-        document.getElementById('nom').value = formDataObj.nom;
-        document.getElementById('prenom').value = formDataObj.prenom;
-    }
-    if (step === 3 && formDataObj.email) {
-        document.getElementById('email').value = formDataObj.email;
-        document.getElementById('numero_telephone').value = formDataObj.numero_telephone || '';
-    }
-    if (step === 4 && formDataObj.objet) {
-        document.getElementById('objet').value = formDataObj.objet;
-    }
-    if (step === 5 && formDataObj.postal_code) {
-        document.getElementById('postal_code').value = formDataObj.postal_code;
-    }
-    
-    // Scroll to top
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-function validateEmail(email) {
-    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return re.test(email);
-}
-
-function validateNumTel(telephone) {
-    const re = /^[0-9]{10}$/;
-    return re.test(telephone);
-}
-
-function isValidFrenchPostalCode(code) {
-    const re = /^\d{5}$/;
-    if (!re.test(code)) return false;
-    const prefix = code.substring(0,2);
-    const num = parseInt(prefix, 10);
-    if ((num >= 1 && num <= 95) || prefix === '97' || prefix === '98') return true;
-    return false;
-}
-
-// Suggestions & autocompletion for postal codes
-function updatePostalSuggestions(val) {
-    const container = document.getElementById('postalSuggestions');
-    container.innerHTML = '';
-    const v = val.trim();
-    if (!v) return;
-
-    const maxResults = 50;
-    let results = [];
-
-    // Helper to push formatted codes
-    function pushCodes(prefix, count) {
-        for (let i = 0; i < count && results.length < maxResults; i++) {
-            const suffix = ('' + i).padStart(3, '0');
-            results.push(prefix + suffix);
-        }
-    }
-
-    // If short prefix, find department prefixes (01..95,97,98)
-    if (v.length <= 2) {
-        const deps = [];
-        for (let i = 1; i <= 95; i++) {
-            deps.push(('' + i).padStart(2, '0'));
-        }
-        deps.push('97', '98');
-        deps.forEach(dep => {
-            if (dep.startsWith(v)) {
-                // show first 10 for this dep
-                pushCodes(dep, 10);
-            }
-        });
+    if (message) {
+        errorEl.textContent   = message;
+        errorEl.style.display = 'block';
+        field.classList.add('input-error');
     } else {
-        // Use the first digits as prefix, pad to 5
-        const prefix = v.substring(0, Math.min(5, v.length));
-        const needed = 5 - prefix.length;
-        if (needed === 0) {
-            // exact 5 digits
-            if (isValidFrenchPostalCode(prefix)) results.push(prefix);
-        } else {
-            // generate suffixes
-            const base = prefix;
-            for (let i = 0; i < 1000 && results.length < maxResults; i++) {
-                const suffix = ('' + i).padStart(needed === 1 ? 1 : (needed === 2 ? 2 : 3), '0');
-                let candidate = base + suffix;
-                // If base length <5 pad right to 5
-                if (candidate.length < 5) candidate = candidate.padEnd(5, '0');
-                if (isValidFrenchPostalCode(candidate) && candidate.startsWith(v)) {
-                    results.push(candidate);
-                }
-            }
+        errorEl.textContent   = '';
+        errorEl.style.display = 'none';
+        field.classList.remove('input-error');
+    }
+}
+
+/**
+ * Affiche une erreur sous un groupe de radios.
+ * @param {string} groupName  - name="" des radios
+ * @param {string} message
+ */
+function setRadioError(groupName, message) {
+    var errorId = 'radio_' + groupName + '_error';
+    var errorEl = document.getElementById(errorId);
+    if (!errorEl) {
+        errorEl    = document.createElement('span');
+        errorEl.id = errorId;
+        errorEl.className = 'field-error';
+        var group = document.querySelector('[name="' + groupName + '"]');
+        if (group) {
+            var radioGroup = group.closest('.radio-group');
+            if (radioGroup) radioGroup.parentNode.insertBefore(errorEl, radioGroup.nextSibling);
         }
     }
+    if (message) {
+        errorEl.textContent   = message;
+        errorEl.style.display = 'block';
+    } else {
+        errorEl.textContent   = '';
+        errorEl.style.display = 'none';
+    }
+}
 
-    // Render suggestions
-    results.slice(0, maxResults).forEach(code => {
-        const div = document.createElement('div');
-        div.className = 'postal-suggestion';
-        div.textContent = code;
-        div.addEventListener('mousedown', function(e) {
-            e.preventDefault();
-            document.getElementById('postal_code').value = code;
-            formDataObj.postal_code = code;
-            container.innerHTML = '';
-        });
-        container.appendChild(div);
+function clearStepErrors(stepSelector) {
+    document.querySelectorAll(stepSelector + ' .field-error').forEach(function(el) {
+        el.textContent   = '';
+        el.style.display = 'none';
+    });
+    document.querySelectorAll(stepSelector + ' .input-error').forEach(function(el) {
+        el.classList.remove('input-error');
     });
 }
 
-// Clear suggestions (used on blur)
-function clearPostalSuggestions() {
-    const container = document.getElementById('postalSuggestions');
-    if (container) container.innerHTML = '';
+/** Regex code postal France métropole + DOM-TOM (97100–97699) */
+function isValidPostalCode(value) {
+    return /^(0[1-9]|[1-8]\d|9[0-5])\d{3}$/.test(value)
+        || /^97[1-6]\d{2}$/.test(value);
 }
 
-// Bind events when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
-    const postalInput = document.getElementById('postal_code');
-    if (postalInput) {
-        postalInput.addEventListener('input', function() {
-            updatePostalSuggestions(this.value);
-        });
-        postalInput.addEventListener('blur', function() {
-            setTimeout(clearPostalSuggestions, 150);
-        });
+function showMessage(elementId, message, isSuccess) {
+    var el = document.getElementById(elementId);
+    if (!el) return;
+    el.textContent   = message;
+    el.className     = 'form-message ' + (isSuccess ? 'success' : 'error');
+    el.style.display = 'block';
+}
+function hideMessage(elementId) {
+    var el = document.getElementById(elementId);
+    if (el) { el.style.display = 'none'; el.textContent = ''; }
+}
+
+
+function nextStep(step) {
+    var currentStep = step - 1;
+    if (!validateStep(currentStep)) return;
+
+    document.querySelectorAll('#mode-inscription .form-card').forEach(function(card) {
+        card.classList.remove('active');
+    });
+    var next = document.querySelector('#mode-inscription .form-card[data-step="' + step + '"]');
+    if (next) next.classList.add('active');
+}
+
+function prevStep(step) {
+    document.querySelectorAll('#mode-inscription .form-card').forEach(function(card) {
+        card.classList.remove('active');
+    });
+    var prev = document.querySelector('#mode-inscription .form-card[data-step="' + step + '"]');
+    if (prev) prev.classList.add('active');
+}
+
+/**
+ * Valide l'étape en cours et affiche les erreurs sous chaque champ.
+ * Retourne true si tout est valide, false sinon.
+ */
+function validateStep(step) {
+    var selector = '#mode-inscription .form-card[data-step="' + step + '"]';
+    clearStepErrors(selector);
+    var valid = true;
+
+    switch (step) {
+
+        case 1: // Civilité
+            if (!document.querySelector('input[name="civilite"]:checked')) {
+                setRadioError('civilite', 'Veuillez sélectionner une civilité.');
+                valid = false;
+            }
+            break;
+
+        case 2: // Nom / Prénom
+            var nom    = document.getElementById('nom').value.trim();
+            var prenom = document.getElementById('prenom').value.trim();
+            if (!nom) {
+                setFieldError('nom', 'Le nom est obligatoire.');
+                valid = false;
+            } else if (!/^[A-ZÀ-Ÿa-zà-ÿ\s\-']+$/.test(nom)) {
+                setFieldError('nom', 'Le nom ne doit contenir que des lettres.');
+                valid = false;
+            }
+            if (!prenom) {
+                setFieldError('prenom', 'Le prénom est obligatoire.');
+                valid = false;
+            } else if (!/^[A-ZÀ-Ÿa-zà-ÿ\s\-']+$/.test(prenom)) {
+                setFieldError('prenom', 'Le prénom ne doit contenir que des lettres.');
+                valid = false;
+            }
+            break;
+
+        case 3: // Email / Téléphone
+            var email = document.getElementById('email').value.trim();
+            var tel   = document.getElementById('numero_telephone').value.trim();
+
+            if (!email && !tel) {
+                setFieldError('email', 'Veuillez fournir au moins un email ou un numéro de téléphone.');
+                setFieldError('numero_telephone', 'Veuillez fournir au moins un email ou un numéro de téléphone.');
+                valid = false;
+            } else {
+                if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                    setFieldError('email', 'L\'adresse email n\'est pas valide.');
+                    valid = false;
+                }
+                // Accepte les formats : 06 12 34 56 78 / 0612345678 / +33612345678
+                if (tel && !/^(\+33|0)[1-9](\d{2}){4}$/.test(tel.replace(/[\s.\-]/g, ''))) {
+                    setFieldError('numero_telephone', 'Numéro invalide. Format attendu : 06 12 34 56 78 ou +33612345678.');
+                    valid = false;
+                }
+            }
+            break;
+
+        case 4: // Catégorie objet
+            if (!document.getElementById('objet').value) {
+                setFieldError('objet', 'Veuillez sélectionner une catégorie.');
+                valid = false;
+            }
+            break;
+
+        case 5: // Code postal
+            var cp = document.getElementById('postal_code').value.trim();
+            if (!cp) {
+                setFieldError('postal_code', 'Le code postal est obligatoire.');
+                valid = false;
+            } else if (!isValidPostalCode(cp)) {
+                setFieldError('postal_code', 'Code postal invalide. Format attendu : 5 chiffres (ex: 37000 ou 97100).');
+                valid = false;
+            }
+            break;
+
+        case 6: // Électrique
+            if (!document.querySelector('input[name="electrique"]:checked')) {
+                setRadioError('electrique', 'Veuillez indiquer si l\'objet est électrique.');
+                valid = false;
+            }
+            break;
+
+        case 7: // Description
+            if (!document.getElementById('description_probleme').value.trim()) {
+                setFieldError('description_probleme', 'Veuillez décrire le problème.');
+                valid = false;
+            }
+            break;
     }
-});
+
+    return valid;
+}
 
 function submitForm() {
-    const electrique = document.querySelector('input[name="electrique"]:checked');
-    if (!electrique) {
-        alert('Veuillez sélectionner une option');
+    if (!validateStep(7)) return;
+
+    var data = {
+        action:               'save_visitor',
+        nonce:                formData.nonce,
+        civilite:             document.querySelector('input[name="civilite"]:checked').value,
+        nom:                  document.getElementById('nom').value.trim(),
+        prenom:               document.getElementById('prenom').value.trim(),
+        email:                document.getElementById('email').value.trim(),
+        numero_telephone:     document.getElementById('numero_telephone').value.trim(),
+        objet:                document.getElementById('objet').value,
+        postal_code:          document.getElementById('postal_code').value.trim(),
+        est_electrique:       document.querySelector('input[name="electrique"]:checked').value,
+        description_probleme: document.getElementById('description_probleme').value.trim()
+    };
+
+    jQuery.post(formData.ajax_url, data, function(response) {
+        if (response.success) {
+            showMessage('formMessage', response.data.message, true);
+            document.querySelectorAll('#mode-inscription .form-card').forEach(function(c) {
+                c.classList.remove('active');
+            });
+        } else {
+            showMessage('formMessage', response.data.message, false);
+        }
+    });
+}
+
+
+/* ============================================================
+   BASCULE ENTRE LES DEUX MODES
+   ============================================================ */
+
+document.addEventListener('DOMContentLoaded', function () {
+
+    document.getElementById('switchToEdit').addEventListener('click', function(e) {
+        e.preventDefault();
+        document.getElementById('mode-inscription').style.display  = 'none';
+        document.getElementById('mode-modification').style.display = 'block';
+        showEditStep(1);
+        hideMessage('editSearchMessage');
+        hideMessage('editUpdateMessage');
+    });
+
+    document.getElementById('switchToRegister').addEventListener('click', function() {
+        document.getElementById('mode-modification').style.display = 'none';
+        document.getElementById('mode-inscription').style.display  = 'block';
+    });
+});
+
+function showEditStep(step) {
+    document.querySelectorAll('#mode-modification .form-card').forEach(function(card) {
+        card.classList.remove('active');
+    });
+    var target = document.querySelector('#mode-modification .form-card[data-edit-step="' + step + '"]');
+    if (target) target.classList.add('active');
+}
+
+function backToEditSearch() {
+    showEditStep(1);
+    hideMessage('editUpdateMessage');
+}
+
+
+/* ============================================================
+   MODE MODIFICATION
+   ============================================================ */
+
+function findVisitor() {
+    hideMessage('editSearchMessage');
+
+    var email = document.getElementById('edit_email_search').value.trim();
+    var phone = document.getElementById('edit_phone_search').value.trim();
+
+    if (!email && !phone) {
+        showMessage('editSearchMessage', 'Veuillez saisir un email ou un numéro de téléphone.', false);
         return;
     }
-    formDataObj.est_electrique = electrique.value;
-    
-    const descEl = document.getElementById('description_probleme');
-    if (!descEl || !descEl.value.trim()) {
-        alert('Veuillez fournir une description du problème');
-        return;
+
+    jQuery.post(formData.ajax_url, {
+        action: 'find_visitor',
+        nonce:  formData.nonce,
+        email:  email,
+        phone:  phone
+    }, function(response) {
+        if (response.success) {
+            var v = response.data;
+            document.getElementById('edit_visitor_id').value           = v.id;
+            document.getElementById('edit_nom').value                  = v.nom;
+            document.getElementById('edit_prenom').value               = v.prenom;
+            document.getElementById('edit_objet').value                = v.objet;
+            document.getElementById('edit_postal_code').value          = v.postal_code;
+            document.getElementById('edit_description_probleme').value = v.description_probleme;
+
+            var civiliteInput = document.querySelector('input[name="edit_civilite"][value="' + v.civilite + '"]');
+            if (civiliteInput) civiliteInput.checked = true;
+
+            showEditStep(2);
+        } else {
+            showMessage('editSearchMessage', response.data.message, false);
+        }
+    });
+}
+
+function updateVisitor() {
+    hideMessage('editUpdateMessage');
+    clearStepErrors('#mode-modification .form-card[data-edit-step="2"]');
+    var valid = true;
+    var scope = '#mode-modification';
+
+    // Civilité
+    if (!document.querySelector('input[name="edit_civilite"]:checked')) {
+        setRadioError('edit_civilite', 'Veuillez sélectionner une civilité.', scope);
+        valid = false;
     }
-    formDataObj.description_probleme = descEl.value.trim();
 
-    // Soumettre via AJAX
-    jQuery.ajax({
-        url: formData.ajax_url,
-        type: 'POST',
-        data: {
-            action: 'save_visitor',
-            nonce: formData.nonce,
-            civilite: formDataObj.civilite,
-            nom: formDataObj.nom,
-            prenom: formDataObj.prenom,
-            email: formDataObj.email,
-            numero_telephone: formDataObj.numero_telephone,
-            objet: formDataObj.objet,
-            postal_code: formDataObj.postal_code,
-            est_electrique: formDataObj.est_electrique,
-            description_probleme: formDataObj.description_probleme
-        },
+    // Nom
+    var nom = document.getElementById('edit_nom').value.trim();
+    if (!nom) {
+        setFieldError('edit_nom', 'Le nom est obligatoire.');
+        valid = false;
+    } else if (!/^[A-ZÀ-Ÿa-zà-ÿ\s\-']+$/.test(nom)) {
+        setFieldError('edit_nom', 'Le nom ne doit contenir que des lettres.');
+        valid = false;
+    }
 
-        success: function(response) {
-            const messageDiv = document.getElementById('formMessage');
-            document.querySelectorAll('.form-card').forEach(card => card.style.display = 'none');
-            
-            if (response.success) {
-                messageDiv.className = 'form-message success';
-                messageDiv.textContent = response.data.message;
-                
-                // Réinitialiser le formulaire après 3 secondes
-                setTimeout(function() {
-                    location.reload();
-                }, 3000);
-            } else {
-                messageDiv.className = 'form-message error';
-                messageDiv.textContent = response.data.message;
-            }
-        },
-        error: function() {
-            const messageDiv = document.getElementById('formMessage');
-            messageDiv.className = 'form-message error';
-            messageDiv.textContent = 'Erreur de connexion au serveur';
-            document.querySelectorAll('.form-card').forEach(card => card.style.display = 'none');
+    // Prénom
+    var prenom = document.getElementById('edit_prenom').value.trim();
+    if (!prenom) {
+        setFieldError('edit_prenom', 'Le prénom est obligatoire.');
+        valid = false;
+    } else if (!/^[A-ZÀ-Ÿa-zà-ÿ\s\-']+$/.test(prenom)) {
+        setFieldError('edit_prenom', 'Le prénom ne doit contenir que des lettres.');
+        valid = false;
+    }
+
+    // Catégorie
+    if (!document.getElementById('edit_objet').value) {
+        setFieldError('edit_objet', 'Veuillez sélectionner une catégorie.');
+        valid = false;
+    }
+
+    // Code postal — obligatoire et format validé
+    var cp = document.getElementById('edit_postal_code').value.trim();
+    if (!cp) {
+        setFieldError('edit_postal_code', 'Le code postal est obligatoire.');
+        valid = false;
+    } else if (!isValidPostalCode(cp)) {
+        setFieldError('edit_postal_code', 'Code postal invalide. Format attendu : 5 chiffres (ex: 37000 ou 97100).');
+        valid = false;
+    }
+
+    // Description
+    if (!document.getElementById('edit_description_probleme').value.trim()) {
+        setFieldError('edit_description_probleme', 'Veuillez décrire le problème.');
+        valid = false;
+    }
+
+    if (!valid) return;
+
+    jQuery.post(formData.ajax_url, {
+        action:               'update_visitor',
+        nonce:                formData.nonce,
+        id:                   document.getElementById('edit_visitor_id').value,
+        civilite:             document.querySelector('input[name="edit_civilite"]:checked').value,
+        nom:                  document.getElementById('edit_nom').value.trim(),
+        prenom:               document.getElementById('edit_prenom').value.trim(),
+        objet:                document.getElementById('edit_objet').value,
+        postal_code:          document.getElementById('edit_postal_code').value.trim(),
+        description_probleme: document.getElementById('edit_description_probleme').value.trim()
+    }, function(response) {
+        if (response.success) {
+            showMessage('editUpdateMessage', response.data.message, true);
+        } else {
+            showMessage('editUpdateMessage', response.data.message, false);
         }
     });
 }
