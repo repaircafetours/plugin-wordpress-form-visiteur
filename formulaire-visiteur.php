@@ -22,6 +22,7 @@ class Formulaire_Visiteur {
         add_action('wp_ajax_find_visitor', array($this, 'find_visitor'));
         add_action('wp_ajax_nopriv_find_visitor', array($this, 'find_visitor'));
         add_action('wp_ajax_update_visitor', array($this, 'update_visitor'));
+        add_action('wp_ajax_check_email', array($this, 'check_email'));
         add_action('wp_ajax_nopriv_update_visitor', array($this, 'update_visitor'));
         add_action('admin_menu', array($this, 'add_admin_menu'));
         add_action('admin_init', array($this, 'create_table'));
@@ -66,9 +67,6 @@ class Formulaire_Visiteur {
         ?>
         <div class="formulaire-visiteur-container">
 
-            <!-- ===================== -->
-            <!--  MODE : INSCRIPTION   -->
-            <!-- ===================== -->
             <div id="mode-inscription">
 
                 <div class="form-card active" data-step="1">
@@ -193,9 +191,6 @@ class Formulaire_Visiteur {
             </div><!-- /mode-inscription -->
 
 
-            <!-- ===================== -->
-            <!--  MODE : MODIFICATION  -->
-            <!-- ===================== -->
             <div id="mode-modification" style="display:none;">
 
                 <!-- Étape M1 : Recherche du visiteur -->
@@ -282,9 +277,9 @@ class Formulaire_Visiteur {
                     </div>
                 </div>
 
-            </div><!-- /mode-modification -->
+            </div>
 
-        </div><!-- /formulaire-visiteur-container -->
+        </div>
         <?php
         return ob_get_clean();
     }
@@ -301,6 +296,19 @@ class Formulaire_Visiteur {
         if (empty($email) && empty($telephone)) {
             wp_send_json_error(array('message' => 'Veuillez fournir au moins une adresse email ou un numéro de téléphone.'));
             wp_die();
+        }
+
+        if (!empty($email)) {
+            $existing = $wpdb->get_var(
+                $wpdb->prepare("SELECT id FROM $table_name WHERE email = %s LIMIT 1", $email)
+            );
+            if ($existing) {
+                wp_send_json_error(array(
+                    'field'   => 'email',
+                    'message' => 'Cette adresse email est déjà utilisée. Utilisez "Modifier mes informations" si vous souhaitez mettre à jour votre fiche.'
+                ));
+                wp_die();
+            }
         }
         
         $data = array(
@@ -322,6 +330,33 @@ class Formulaire_Visiteur {
         } else {
             wp_send_json_error(array('message' => 'Erreur lors de l\'enregistrement.'));
         }
+    }
+
+    public function check_email() {
+        check_ajax_referer('visitor_nonce', 'nonce');
+
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'visiteurs';
+
+        $email = !empty($_POST['email']) ? sanitize_email($_POST['email']) : '';
+
+        if (empty($email)) {
+            wp_send_json_success(array('available' => true));
+            wp_die();
+        }
+
+        $existing = $wpdb->get_var(
+            $wpdb->prepare("SELECT id FROM $table_name WHERE email = %s LIMIT 1", $email)
+        );
+
+        if ($existing) {
+            wp_send_json_error(array(
+                'message' => 'Cette adresse email est déjà utilisée. Utilisez \"Modifier mes informations\" si vous souhaitez mettre à jour votre fiche.'
+            ));
+        } else {
+            wp_send_json_success(array('available' => true));
+        }
+        wp_die();
     }
 
     // -------------------------------------------------------

@@ -85,8 +85,20 @@ function hideMessage(elementId) {
 
 function nextStep(step) {
     var currentStep = step - 1;
-    if (!validateStep(currentStep)) return;
 
+    if (currentStep === 3) {
+        validateStepAsync(3, function(valid) {
+            if (!valid) return;
+            goToStep(step);
+        });
+        return;
+    }
+
+    if (!validateStep(currentStep)) return;
+    goToStep(step);
+}
+
+function goToStep(step) {
     document.querySelectorAll('#mode-inscription .form-card').forEach(function(card) {
         card.classList.remove('active');
     });
@@ -196,6 +208,54 @@ function validateStep(step) {
     return valid;
 }
 
+/**
+ * Version asynchrone de validateStep pour les étapes nécessitant un appel AJAX.
+ * @param {number}   step
+ * @param {function} callback(isValid)
+ */
+function validateStepAsync(step, callback) {
+    var selector = '#mode-inscription .form-card[data-step="' + step + '"]';
+    clearStepErrors(selector);
+
+    if (step === 3) {
+        var email = document.getElementById('email').value.trim();
+        var tel   = document.getElementById('numero_telephone').value.trim();
+
+        // Validation format d'abord (synchrone)
+        if (!email && !tel) {
+            setFieldError('email', 'Veuillez fournir au moins un email ou un numéro de téléphone.');
+            setFieldError('numero_telephone', 'Veuillez fournir au moins un email ou un numéro de téléphone.');
+            return callback(false);
+        }
+        if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            setFieldError('email', "L'adresse email n'est pas valide.");
+            return callback(false);
+        }
+        if (tel && !/^(\+33|0)[1-9](\d{2}){4}$/.test(tel.replace(/[\s.\-]/g, ''))) {
+            setFieldError('numero_telephone', 'Numéro invalide. Format attendu : 06 12 34 56 78 ou +33612345678.');
+            return callback(false);
+        }
+
+        // Vérification doublon email côté serveur
+        if (!email) return callback(true); // Pas d'email = pas de doublon à vérifier
+
+        jQuery.post(formData.ajax_url, {
+            action: 'check_email',
+            nonce:  formData.nonce,
+            email:  email
+        }, function(response) {
+            if (response.success) {
+                callback(true);
+            } else {
+                setFieldError('email', response.data.message);
+                callback(false);
+            }
+        });
+    } else {
+        callback(validateStep(step));
+    }
+}
+
 function submitForm() {
     if (!validateStep(7)) return;
 
@@ -226,9 +286,6 @@ function submitForm() {
 }
 
 
-/* ============================================================
-   BASCULE ENTRE LES DEUX MODES
-   ============================================================ */
 
 document.addEventListener('DOMContentLoaded', function () {
 
@@ -261,9 +318,6 @@ function backToEditSearch() {
 }
 
 
-/* ============================================================
-   MODE MODIFICATION
-   ============================================================ */
 
 function findVisitor() {
     hideMessage('editSearchMessage');
