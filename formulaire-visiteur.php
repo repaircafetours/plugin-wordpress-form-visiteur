@@ -36,10 +36,11 @@ class Formulaire_Visiteur {
         
         $sql = "CREATE TABLE IF NOT EXISTS $table_name (
             id mediumint(9) NOT NULL AUTO_INCREMENT,
+            backend_id int DEFAULT NULL,
             civilite varchar(10) NOT NULL,
             nom varchar(100) NOT NULL,
             prenom varchar(100) NOT NULL,
-            email varchar(100),
+            email varchar(100) NOT NULL DEFAULT '',
             numero_telephone varchar(20),
             objet varchar(255) NOT NULL,
             postal_code varchar(10) NOT NULL DEFAULT '',
@@ -290,7 +291,7 @@ class Formulaire_Visiteur {
         global $wpdb;
         $table_name = $wpdb->prefix . 'visiteurs';
         
-        $email     = !empty($_POST['email'])            ? sanitize_email($_POST['email'])            : '';
+        $email     = !empty($_POST['email'])            ? sanitize_email($_POST['email'])                : '';
         $telephone = !empty($_POST['numero_telephone']) ? sanitize_text_field($_POST['numero_telephone']) : '';
         
         if (empty($email) && empty($telephone)) {
@@ -322,14 +323,71 @@ class Formulaire_Visiteur {
             'est_electrique'       => sanitize_text_field($_POST['est_electrique']),
             'description_probleme' => sanitize_textarea_field($_POST['description_probleme']),
         );
-        
+
         $result = $wpdb->insert($table_name, $data);
-        
-        if ($result) {
-            wp_send_json_success(array('message' => 'Formulaire soumis avec succès !'));
+        $new_id = $wpdb->insert_id;
+
+        if ($result !== false) {
+            $data_backend = array(
+                'title'    => sanitize_text_field($_POST['civilite']),
+                'name'     => sanitize_text_field(strtoupper($_POST['nom'])),
+                'surname'  => sanitize_text_field($_POST['prenom']),
+                'city'     => 'Tours',
+                'source'   => 'wordpress_form',
+                'zip_code' => sanitize_text_field($_POST['postal_code']),
+                'email'    => $email, 
+            );
+
+            $url_backend = 'http://172.16.0.1:8000/api/v1/visitors';
+
+            $response = wp_remote_post($url_backend, array(
+                'method'   => 'POST',
+                'timeout'  => 15,
+                'blocking' => true,
+                'headers'  => array(
+                    'Content-Type' => 'application/json',
+                    'Accept'       => 'application/json',
+                ),
+                'body' => json_encode($data_backend),
+            ));
+
+            $body = wp_remote_retrieve_body($response);
+            
+
+            if (is_wp_error($response)) {
+                error_log('Erreur réseau WordPress : ' . $response->get_error_message());
+                wp_send_json_error(array('message' => 'Erreur réseau : ' . $response->get_error_message()));
+            } else {
+                $status_code = wp_remote_retrieve_response_code($response);
+                $body        = wp_remote_retrieve_body($response);
+                error_log("=== DEBUG BACKEND ===");
+                error_log("Status: " . $status_code);
+                error_log("Body: " . $body);
+
+                if ($status_code >= 200 && $status_code < 300) {
+                    $body_data = json_decode($body, true);
+
+                    $backend_id = isset($body_data['id']) ? $body_data['id'] : null;
+                    if ($backend_id) {
+                        $wpdb->update($table_name, 
+                            array('backend_id' => $backend_id), 
+                            array('id' => $new_id)
+                        );
+                    }
+                    error_log("ID Backend enregistré : " . $backend_id . " pour le visiteur WP : " . $new_id);
+                    wp_send_json_success(array('message' => 'Visiteur enregistré avec succès !'));
+                } else {
+                    wp_send_json_error(array(
+                        'message' => "Le backend a refusé les données (code $status_code).",
+                        'details' => json_decode($body),
+                    ));
+                }
+            }
         } else {
-            wp_send_json_error(array('message' => 'Erreur lors de l\'enregistrement.'));
+            wp_send_json_error(array('message' => 'Erreur lors de l\'enregistrement en base.'));
         }
+
+        wp_die();
     }
 
     public function check_email() {
@@ -419,7 +477,6 @@ class Formulaire_Visiteur {
             wp_die();
         }
 
-        // Vérifier que le visiteur existe
         $exists = $wpdb->get_var($wpdb->prepare("SELECT id FROM $table_name WHERE id = %d", $id));
         if (!$exists) {
             wp_send_json_error(array('message' => 'Visiteur introuvable.'));
@@ -435,13 +492,67 @@ class Formulaire_Visiteur {
             'description_probleme' => sanitize_textarea_field($_POST['description_probleme']),
         );
 
+        $visiteur_existant = $wpdb->get_row($wpdb->prepare(
+            "SELECT email, numero_telephone, backend_id FROM $table_name WHERE id = %d", $id
+        ));
+
+        $backend_id = $visiteur_existant->backend_id ?? null;
+        if (!$backend_id) {
+            wp_send_json_error(array('message' => 'ID backend introuvable pour ce visiteur.'));
+            wp_die();
+        }
+
+        $data_backend = array(
+            'id'           => $id,
+            'title'        => sanitize_text_field($_POST['civilite']),
+            'name'         => sanitize_text_field(strtoupper($_POST['nom'])),
+            'surname'      => sanitize_text_field($_POST['prenom']),
+            'city'         => 'Tours',
+            'source'       => 'wordpress_form',
+            'zip_code'     => sanitize_text_field($_POST['postal_code']),
+            'notification' => false,
+        );
+
         $result = $wpdb->update($table_name, $data, array('id' => $id));
 
         if ($result !== false) {
-            wp_send_json_success(array('message' => 'Vos informations ont été mises à jour avec succès !'));
+            $url_backend = 'http://172.16.0.1:8000/api/v1/visitors/' . $backend_id;
+
+            $response = wp_remote_post($url_backend, array(
+                'method'   => 'PATCH', 
+                'timeout'  => 15,
+                'blocking' => true,
+                'headers'  => array(
+                    'Content-Type' => 'application/json',
+                    'Accept'       => 'application/json',
+                ),
+                'body' => json_encode($data_backend),
+            ));
+
+            if (is_wp_error($response)) {
+                error_log('Erreur réseau WordPress : ' . $response->get_error_message());
+                wp_send_json_error(array('message' => 'Erreur réseau : ' . $response->get_error_message()));
+            } else {
+                $status_code = wp_remote_retrieve_response_code($response);
+                $body        = wp_remote_retrieve_body($response);
+                error_log("=== DEBUG BACKEND ===");
+                error_log("Status: " . $status_code);
+                error_log("Body: " . $body);
+
+                if ($status_code >= 200 && $status_code < 300) {
+                    wp_send_json_success(array('message' => 'Modifications enregistrées avec succès !'));
+                } else {
+                    wp_send_json_error(array(
+                        'message' => "Le backend a refusé les données (code $status_code).",
+                        'details' => json_decode($body),
+                    ));
+                }
+            }
         } else {
-            wp_send_json_error(array('message' => 'Erreur lors de la mise à jour.'));
+            wp_send_json_error(array('message' => 'Erreur lors de la mise à jour en base.'));
         }
+
+        wp_die();
     }
     
     public function add_admin_menu() {
