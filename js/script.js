@@ -188,6 +188,14 @@ function validateStep(step) {
                 setFieldError('postal_code', 'Code postal invalide. Format attendu : 5 chiffres (ex: 37000 ou 97100).');
                 valid = false;
             }
+            var city = document.getElementById('city').value.trim();
+            if (!city) {
+                setFieldError('city', 'La ville est obligatoire.');
+                valid = false;
+            } else if (!/^[A-ZÀ-Ÿa-zà-ÿ\s\-']+$/.test(city)) {
+                setFieldError('city', 'La ville ne doit contenir que des lettres.');
+                valid = false;
+            }
             break;
 
         case 6: // Électrique
@@ -269,6 +277,7 @@ function submitForm() {
         numero_telephone:     document.getElementById('numero_telephone').value.trim(),
         objet:                document.getElementById('objet').value,
         postal_code:          document.getElementById('postal_code').value.trim(),
+        city:                 document.getElementById('city').value.trim(),
         est_electrique:       document.querySelector('input[name="electrique"]:checked').value,
         description_probleme: document.getElementById('description_probleme').value.trim()
     };
@@ -343,6 +352,7 @@ function findVisitor() {
             document.getElementById('edit_prenom').value               = v.prenom;
             document.getElementById('edit_objet').value                = v.objet;
             document.getElementById('edit_postal_code').value          = v.postal_code;
+            document.getElementById('edit_city').value                 = v.city;
             document.getElementById('edit_description_probleme').value = v.description_probleme;
 
             var civiliteInput = document.querySelector('input[name="edit_civilite"][value="' + v.civilite + '"]');
@@ -403,6 +413,16 @@ function updateVisitor() {
         valid = false;
     }
 
+    // Ville - obligatoire et format validé
+    var city = document.getElementById('edit_city').value.trim();
+    if (!city) {
+        setFieldError('edit_city', 'La ville est obligatoire.');
+        valid = false;
+    } else if (!/^[A-ZÀ-Ÿa-zà-ÿ\s\-']+$/.test(city)) {
+        setFieldError('edit_city', 'La ville ne doit contenir que des lettres.');
+        valid = false;
+    }
+
     // Description
     if (!document.getElementById('edit_description_probleme').value.trim()) {
         setFieldError('edit_description_probleme', 'Veuillez décrire le problème.');
@@ -420,6 +440,7 @@ function updateVisitor() {
         prenom:               document.getElementById('edit_prenom').value.trim(),
         objet:                document.getElementById('edit_objet').value,
         postal_code:          document.getElementById('edit_postal_code').value.trim(),
+        city:                 document.getElementById('edit_city').value.trim(),
         description_probleme: document.getElementById('edit_description_probleme').value.trim()
     }, function(response) {
         if (response.success) {

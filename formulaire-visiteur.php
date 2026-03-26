@@ -43,6 +43,7 @@ class Formulaire_Visiteur {
             numero_telephone varchar(20),
             objet varchar(255) NOT NULL,
             postal_code varchar(10) NOT NULL DEFAULT '',
+            city varchar(100) NOT NULL DEFAULT '',
             est_electrique varchar(3) NOT NULL,
             description_probleme text NOT NULL,
             date_creation datetime DEFAULT CURRENT_TIMESTAMP,
@@ -55,7 +56,7 @@ class Formulaire_Visiteur {
     
     public function enqueue_scripts() {
         wp_enqueue_style('formulaire-visiteur-css', plugin_dir_url(__FILE__) . 'css/style.css');
-        wp_enqueue_script('formulaire-visiteur-js', plugin_dir_url(__FILE__) . 'js/script.js', array('jquery'), '1.1.0', true);
+        wp_enqueue_script('formulaire-visiteur-js', plugin_dir_url(__FILE__) . 'js/script.js', array('jquery'), '1.2.0', true);
         wp_localize_script('formulaire-visiteur-js', 'formData', array(
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce'    => wp_create_nonce('visitor_nonce')
@@ -144,6 +145,11 @@ class Formulaire_Visiteur {
                             <label class="form-label">Code postal :</label>
                             <input type="text" id="postal_code" class="form-input" placeholder="Ex: 37000" required autocomplete="off">
                             <div id="postalSuggestions" class="postal-suggestions"></div>
+
+                            <label class="form-label">Ville :</label>
+                            <input type="text" id="city" class="form-input" placeholder="Ex: Tours" required autocomplete="off">
+
+                            
                         </div>
                     </div>
                     <div class="form-buttons">
@@ -257,6 +263,10 @@ class Formulaire_Visiteur {
                                 <label class="form-label">Code postal :</label>
                                 <input type="text" id="edit_postal_code" class="form-input">
                             </div>
+                            <div class="form-group">
+                                <label class="form-label">Ville :</label>
+                                <input type="text" id="edit_city" class="form-input">
+                            </div>
                         </fieldset>
 
                         <!-- Description du problème -->
@@ -319,6 +329,7 @@ class Formulaire_Visiteur {
             'numero_telephone'     => $telephone,
             'objet'                => sanitize_text_field($_POST['objet']),
             'postal_code'          => sanitize_text_field($_POST['postal_code']),
+            'city'                 => !empty($_POST['city']) ? sanitize_text_field($_POST['city']) : 'Non renseignée',
             'est_electrique'       => sanitize_text_field($_POST['est_electrique']),
             'description_probleme' => sanitize_textarea_field($_POST['description_probleme']),
         );
@@ -331,7 +342,7 @@ class Formulaire_Visiteur {
                 'title'    => sanitize_text_field($_POST['civilite']),
                 'name'     => sanitize_text_field(strtoupper($_POST['nom'])),
                 'surname'  => sanitize_text_field($_POST['prenom']),
-                'city'     => 'Tours',
+                'city'     => !empty($_POST['city']) ? sanitize_text_field($_POST['city']) : 'Non renseignée',
                 'source'   => 'wordpress_form',
                 'zip_code' => sanitize_text_field($_POST['postal_code']),
                 'email'    => $email, 
@@ -447,6 +458,7 @@ class Formulaire_Visiteur {
             'prenom'               => $visiteur->prenom,
             'objet'                => $visiteur->objet,
             'postal_code'          => $visiteur->postal_code,
+            'city'                 => $visiteur->city,
             'description_probleme' => $visiteur->description_probleme,
         ));
     }
@@ -478,6 +490,7 @@ class Formulaire_Visiteur {
             'prenom'               => sanitize_text_field($_POST['prenom']),
             'objet'                => sanitize_text_field($_POST['objet']),
             'postal_code'          => sanitize_text_field($_POST['postal_code']),
+            'city'                 => !empty($_POST['city']) ? sanitize_text_field($_POST['city']) : 'Non renseignée',
             'description_probleme' => sanitize_textarea_field($_POST['description_probleme']),
         );
 
@@ -486,7 +499,7 @@ class Formulaire_Visiteur {
             'title'        => sanitize_text_field($_POST['civilite']),
             'name'         => sanitize_text_field(strtoupper($_POST['nom'])),
             'surname'      => sanitize_text_field($_POST['prenom']),
-            'city'         => 'Tours',
+            'city'         => !empty($_POST['city']) ? sanitize_text_field($_POST['city']) : 'Non renseignée',
             'source'       => 'wordpress_form',
             'zip_code'     => sanitize_text_field($_POST['postal_code']),
             'notification' => false,
@@ -553,7 +566,7 @@ class Formulaire_Visiteur {
                 <thead>
                     <tr>
                         <th>ID</th><th>Civilité</th><th>Nom</th><th>Prénom</th>
-                        <th>Email</th><th>Téléphone</th><th>Code postal</th>
+                        <th>Email</th><th>Téléphone</th><th>Code postal</th><th>Ville</th>
                         <th>Catégorie</th><th>Électrique</th><th>Description Problème</th><th>Date</th>
                     </tr>
                 </thead>
@@ -567,6 +580,7 @@ class Formulaire_Visiteur {
                         <td><?php echo esc_html($v->email); ?></td>
                         <td><?php echo esc_html($v->numero_telephone); ?></td>
                         <td><?php echo esc_html($v->postal_code); ?></td>
+                        <td><?php echo esc_html($v->city); ?></td>
                         <td><?php echo esc_html($v->objet); ?></td>
                         <td><?php echo esc_html($v->est_electrique); ?></td>
                         <td><?php echo esc_html($v->description_probleme); ?></td>
