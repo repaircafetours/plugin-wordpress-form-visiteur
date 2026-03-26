@@ -36,7 +36,6 @@ class Formulaire_Visiteur {
         
         $sql = "CREATE TABLE IF NOT EXISTS $table_name (
             id mediumint(9) NOT NULL AUTO_INCREMENT,
-            backend_id int DEFAULT NULL,
             civilite varchar(10) NOT NULL,
             nom varchar(100) NOT NULL,
             prenom varchar(100) NOT NULL,
@@ -365,16 +364,6 @@ class Formulaire_Visiteur {
                 error_log("Body: " . $body);
 
                 if ($status_code >= 200 && $status_code < 300) {
-                    $body_data = json_decode($body, true);
-
-                    $backend_id = isset($body_data['id']) ? $body_data['id'] : null;
-                    if ($backend_id) {
-                        $wpdb->update($table_name, 
-                            array('backend_id' => $backend_id), 
-                            array('id' => $new_id)
-                        );
-                    }
-                    error_log("ID Backend enregistré : " . $backend_id . " pour le visiteur WP : " . $new_id);
                     wp_send_json_success(array('message' => 'Visiteur enregistré avec succès !'));
                 } else {
                     wp_send_json_error(array(
@@ -492,16 +481,6 @@ class Formulaire_Visiteur {
             'description_probleme' => sanitize_textarea_field($_POST['description_probleme']),
         );
 
-        $visiteur_existant = $wpdb->get_row($wpdb->prepare(
-            "SELECT email, numero_telephone, backend_id FROM $table_name WHERE id = %d", $id
-        ));
-
-        $backend_id = $visiteur_existant->backend_id ?? null;
-        if (!$backend_id) {
-            wp_send_json_error(array('message' => 'ID backend introuvable pour ce visiteur.'));
-            wp_die();
-        }
-
         $data_backend = array(
             'id'           => $id,
             'title'        => sanitize_text_field($_POST['civilite']),
@@ -516,7 +495,7 @@ class Formulaire_Visiteur {
         $result = $wpdb->update($table_name, $data, array('id' => $id));
 
         if ($result !== false) {
-            $url_backend = 'http://172.16.0.1:8000/api/v1/visitors/' . $backend_id;
+            $url_backend = 'http://172.16.0.1:8000/api/v1/visitors/' . $id;
 
             $response = wp_remote_post($url_backend, array(
                 'method'   => 'PATCH', 
