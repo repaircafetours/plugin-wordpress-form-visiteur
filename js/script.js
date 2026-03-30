@@ -198,9 +198,14 @@ function validateStep(step) {
             }
             break;
 
-        case 6: // Électrique
+        case 6: // Objet
             if (!document.querySelector('input[name="electrique"]:checked')) {
-                setRadioError('electrique', 'Veuillez indiquer si l\'objet est électrique.');
+                setRadioError('electrique', "Veuillez indiquer si l'objet est électrique.");
+                valid = false;
+            }
+            var nomObjet = document.getElementById('nom_objet').value.trim();
+            if (!nomObjet) {
+                setFieldError('nom_objet', "Le nom de l'objet est obligatoire.");
                 valid = false;
             }
             break;
@@ -279,6 +284,10 @@ function submitForm() {
         postal_code:          document.getElementById('postal_code').value.trim(),
         city:                 document.getElementById('city').value.trim(),
         est_electrique:       document.querySelector('input[name="electrique"]:checked').value,
+        nom_objet:   document.getElementById('nom_objet').value.trim(),
+        marque:      document.getElementById('marque').value.trim(),
+        age_objet:   document.getElementById('age_objet').value.trim(),
+        poids_objet: document.getElementById('poids_objet').value.trim(),
         description_probleme: document.getElementById('description_probleme').value.trim()
     };
 
@@ -353,6 +362,10 @@ function findVisitor() {
             document.getElementById('edit_objet').value                = v.objet;
             document.getElementById('edit_postal_code').value          = v.postal_code;
             document.getElementById('edit_city').value                 = v.city;
+            document.getElementById('edit_nom_objet').value            = v.nom_objet   || '';
+            document.getElementById('edit_marque').value               = v.marque      || '';
+            document.getElementById('edit_age_objet').value            = v.age_objet   || '';
+            document.getElementById('edit_poids_objet').value          = v.poids_objet || '';
             document.getElementById('edit_description_probleme').value = v.description_probleme;
 
             var civiliteInput = document.querySelector('input[name="edit_civilite"][value="' + v.civilite + '"]');
@@ -423,6 +436,18 @@ function updateVisitor() {
         valid = false;
     }
 
+    // Objet 
+    var nomObjet = document.getElementById('edit_nom_objet').value.trim();
+    if (!nomObjet) {
+        setFieldError('edit_nom_objet', "Le nom de l'objet est obligatoire.");
+        valid = false;
+    }
+    var ageObjet = document.getElementById('edit_age_objet').value.trim();
+    if (!ageObjet) {
+        setFieldError('edit_age_objet', "L'age de l'objet est obligatoire.");
+        valid = false;
+    }
+
     // Description
     if (!document.getElementById('edit_description_probleme').value.trim()) {
         setFieldError('edit_description_probleme', 'Veuillez décrire le problème.');
@@ -441,6 +466,10 @@ function updateVisitor() {
         objet:                document.getElementById('edit_objet').value,
         postal_code:          document.getElementById('edit_postal_code').value.trim(),
         city:                 document.getElementById('edit_city').value.trim(),
+        nom_objet:   document.getElementById('edit_nom_objet').value.trim(),
+        marque:      document.getElementById('edit_marque').value.trim(),
+        age_objet:   document.getElementById('edit_age_objet').value.trim(),
+        poids_objet: document.getElementById('edit_poids_objet').value.trim(),
         description_probleme: document.getElementById('edit_description_probleme').value.trim()
     }, function(response) {
         if (response.success) {

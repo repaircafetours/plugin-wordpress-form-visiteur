@@ -1,10 +1,8 @@
 <?php
 /**
  * Plugin Name: Formulaire Visiteur
- * Plugin URI: https://example.com
  * Description: Formulaire multi-étapes pour l'enregistrement des visiteurs
  * Version: 1.1.0
- * Author: Votre Nom
  * Text Domain: formulaire-visiteur
  */
 
@@ -44,6 +42,10 @@ class Formulaire_Visiteur {
             objet varchar(255) NOT NULL,
             postal_code varchar(10) NOT NULL DEFAULT '',
             city varchar(100) NOT NULL DEFAULT '',
+            nom_objet varchar(100) NOT NULL DEFAULT '',
+            marque varchar(100) NOT NULL DEFAULT '',
+            age_objet varchar(20) NOT NULL DEFAULT '',
+            poids_objet varchar(20) NOT NULL DEFAULT '',
             est_electrique varchar(3) NOT NULL,
             description_probleme text NOT NULL,
             date_creation datetime DEFAULT CURRENT_TIMESTAMP,
@@ -163,8 +165,24 @@ class Formulaire_Visiteur {
                     <div class="form-content">
                         <label class="form-label">L'objet est-il électrique ? :</label>
                         <div class="radio-group">
-                            <label class="radio-label"><input type="radio" name="electrique" value="oui" required><span>oui</span></label>
-                            <label class="radio-label"><input type="radio" name="electrique" value="non" required><span>non</span></label>
+                            <label class="radio-label"><input type="radio" name="electrique" value="oui" required><span>Oui</span></label>
+                            <label class="radio-label"><input type="radio" name="electrique" value="non" required><span>Non</span></label>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Nom de l'objet :</label>
+                            <input type="text" id="nom_objet" class="form-input" placeholder="Ex: Lave-linge" required autocomplete="off">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Marque :</label>
+                            <input type="text" id="marque" class="form-input" placeholder="Ex: Samsung" autocomplete="off">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Âge de l'objet :</label>
+                            <input type="text" id="age_objet" class="form-input" placeholder="Ex: 5 ans" autocomplete="off">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Poids de l'objet :</label>
+                            <input type="text" id="poids_objet" class="form-input" placeholder="Ex: 2 kg" autocomplete="off">
                         </div>
                     </div>
                     <div class="form-buttons">
@@ -245,9 +263,19 @@ class Formulaire_Visiteur {
                                 <label class="form-label">Prénom :</label>
                                 <input type="text" id="edit_prenom" class="form-input">
                             </div>
+
+
+                            <div class="form-group">
+                                <label class="form-label">Code postal :</label>
+                                <input type="text" id="edit_postal_code" class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Ville :</label>
+                                <input type="text" id="edit_city" class="form-input">
+                            </div>
                         </fieldset>
 
-                        <!-- Catégorie / Code postal -->
+                        <!-- Catégorie / Objet -->
                         <fieldset class="edit-section">
                             <legend>Objet</legend>
                             <div class="form-group">
@@ -259,13 +287,22 @@ class Formulaire_Visiteur {
                                     <option value="informatique">Informatique</option>
                                 </select>
                             </div>
+
                             <div class="form-group">
-                                <label class="form-label">Code postal :</label>
-                                <input type="text" id="edit_postal_code" class="form-input">
+                                <label class="form-label">Nom de l'objet :</label>
+                                <input type="text" id="edit_nom_objet" class="form-input">
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Ville :</label>
-                                <input type="text" id="edit_city" class="form-input">
+                                <label class="form-label">Marque :</label>
+                                <input type="text" id="edit_marque" class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Âge de l'objet :</label>
+                                <input type="text" id="edit_age_objet" class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Poids de l'objet :</label>
+                                <input type="text" id="edit_poids_objet" class="form-input">
                             </div>
                         </fieldset>
 
@@ -331,6 +368,10 @@ class Formulaire_Visiteur {
             'postal_code'          => sanitize_text_field($_POST['postal_code']),
             'city'                 => !empty($_POST['city']) ? sanitize_text_field($_POST['city']) : 'Non renseignée',
             'est_electrique'       => sanitize_text_field($_POST['est_electrique']),
+            'nom_objet'            => !empty($_POST['nom_objet'])     ? sanitize_text_field($_POST['nom_objet'])     : '',
+            'marque'               => !empty($_POST['marque'])        ? sanitize_text_field($_POST['marque'])        : '',
+            'age_objet'            => !empty($_POST['age_objet'])     ? sanitize_text_field($_POST['age_objet'])     : '',
+            'poids_objet'          => !empty($_POST['poids_objet'])   ? sanitize_text_field($_POST['poids_objet'])   : '',
             'description_probleme' => sanitize_textarea_field($_POST['description_probleme']),
         );
 
@@ -338,6 +379,8 @@ class Formulaire_Visiteur {
         $new_id = $wpdb->insert_id;
 
         if ($result !== false) {
+
+            // === 1. Envoi visiteur ===
             $data_backend = array(
                 'title'    => sanitize_text_field($_POST['civilite']),
                 'name'     => sanitize_text_field(strtoupper($_POST['nom'])),
@@ -345,46 +388,69 @@ class Formulaire_Visiteur {
                 'city'     => !empty($_POST['city']) ? sanitize_text_field($_POST['city']) : 'Non renseignée',
                 'source'   => 'wordpress_form',
                 'zip_code' => sanitize_text_field($_POST['postal_code']),
-                'email'    => $email, 
+                'email'    => $email,
             );
 
-            $url_backend = 'http://172.16.0.1:8000/api/v1/visitors';
-
-            $response = wp_remote_post($url_backend, array(
+            $response_visitor = wp_remote_post('http://172.16.0.1:8000/api/v1/visitors', array(
                 'method'   => 'POST',
                 'timeout'  => 15,
                 'blocking' => true,
-                'headers'  => array(
-                    'Content-Type' => 'application/json',
-                    'Accept'       => 'application/json',
-                ),
-                'body' => json_encode($data_backend),
+                'headers'  => array('Content-Type' => 'application/json', 'Accept' => 'application/json'),
+                'body'     => json_encode($data_backend),
             ));
 
-            $body = wp_remote_retrieve_body($response);
-            
-
-            if (is_wp_error($response)) {
-                error_log('Erreur réseau WordPress : ' . $response->get_error_message());
-                wp_send_json_error(array('message' => 'Erreur réseau : ' . $response->get_error_message()));
-            } else {
-                $status_code = wp_remote_retrieve_response_code($response);
-                $body        = wp_remote_retrieve_body($response);
-                error_log("=== DEBUG BACKEND ===");
-                error_log("Status: " . $status_code);
-                error_log("Body: " . $body);
-
-                if ($status_code >= 200 && $status_code < 300) {
-                    wp_send_json_success(array('message' => 'Visiteur enregistré avec succès !'));
-                } else {
-                    wp_send_json_error(array(
-                        'message' => "Le backend a refusé les données (code $status_code).",
-                        'details' => json_decode($body),
-                    ));
-                }
+            if (is_wp_error($response_visitor)) {
+                error_log('Erreur réseau visiteur : ' . $response_visitor->get_error_message());
+                wp_send_json_error(array('message' => 'Erreur réseau visiteur.'));
+                wp_die();
             }
+
+            $status_visitor = wp_remote_retrieve_response_code($response_visitor);
+            $body_visitor   = wp_remote_retrieve_body($response_visitor);
+            error_log("=== DEBUG BACKEND VISITEUR === Status: $status_visitor | Body: $body_visitor");
+
+            if ($status_visitor < 200 || $status_visitor >= 300) {
+                wp_send_json_error(array(
+                    'message' => "Backend visiteur refusé (code $status_visitor).",
+                    'details' => json_decode($body_visitor),
+                ));
+                wp_die();
+            }
+
+            // === 2. Envoi item ===
+            $data_backend_item = array(
+                'weight'        => !empty($_POST['poids_objet'])   ? sanitize_text_field($_POST['poids_objet'])   : '',
+                'age'           => !empty($_POST['age_objet'])     ? sanitize_text_field($_POST['age_objet'])     : '',
+                'name'          => !empty($_POST['nom_objet'])     ? sanitize_text_field($_POST['nom_objet'])     : '',
+                'is_electrique' => sanitize_text_field($_POST['est_electrique']),
+                'brand'         => !empty($_POST['marque'])        ? sanitize_text_field($_POST['marque'])        : '',
+            );
+
+            $response_item = wp_remote_post('http://172.16.0.1:8000/api/v1/visitors/' . $new_id . '/items', array(
+                'method'   => 'POST',
+                'timeout'  => 15,
+                'blocking' => true,
+                'headers'  => array('Content-Type' => 'application/json', 'Accept' => 'application/json'),
+                'body'     => json_encode($data_backend_item),
+            ));
+
+            $status_item = wp_remote_retrieve_response_code($response_item);
+            $body_item   = wp_remote_retrieve_body($response_item);
+            error_log("=== DEBUG BACKEND ITEM === Status: $status_item | Body: $body_item");
+
+            if (is_wp_error($response_item) || $status_item < 200 || $status_item >= 300) {
+                wp_send_json_error(array(
+                    'message' => "Backend item refusé (code $status_item).",
+                    'details' => json_decode($body_item),
+                ));
+                wp_die();
+            }
+
+            // === 3. Succès final — seulement ici ===
+            wp_send_json_success(array('message' => 'Visiteur enregistré avec succès !'));
+
         } else {
-            wp_send_json_error(array('message' => 'Erreur lors de l\'enregistrement en base.'));
+            wp_send_json_error(array('message' => "Erreur lors de l'enregistrement en base."));
         }
 
         wp_die();
@@ -459,6 +525,10 @@ class Formulaire_Visiteur {
             'objet'                => $visiteur->objet,
             'postal_code'          => $visiteur->postal_code,
             'city'                 => $visiteur->city,
+            'nom_objet'            => $visiteur->nom_objet,
+            'marque'               => $visiteur->marque,
+            'age_objet'            => $visiteur->age_objet,
+            'poids_objet'          => $visiteur->poids_objet,
             'description_probleme' => $visiteur->description_probleme,
         ));
     }
@@ -490,58 +560,90 @@ class Formulaire_Visiteur {
             'prenom'               => sanitize_text_field($_POST['prenom']),
             'objet'                => sanitize_text_field($_POST['objet']),
             'postal_code'          => sanitize_text_field($_POST['postal_code']),
-            'city'                 => !empty($_POST['city']) ? sanitize_text_field($_POST['city']) : 'Non renseignée',
+            'city'                 => !empty($_POST['city'])        ? sanitize_text_field($_POST['city'])        : 'Non renseignée',
+            'nom_objet'            => !empty($_POST['nom_objet'])   ? sanitize_text_field($_POST['nom_objet'])   : '',
+            'marque'               => !empty($_POST['marque'])      ? sanitize_text_field($_POST['marque'])      : '',
+            'age_objet'            => !empty($_POST['age_objet'])   ? sanitize_text_field($_POST['age_objet'])   : '',
+            'poids_objet'          => !empty($_POST['poids_objet']) ? sanitize_text_field($_POST['poids_objet']) : '',
             'description_probleme' => sanitize_textarea_field($_POST['description_probleme']),
-        );
-
-        $data_backend = array(
-            'id'           => $id,
-            'title'        => sanitize_text_field($_POST['civilite']),
-            'name'         => sanitize_text_field(strtoupper($_POST['nom'])),
-            'surname'      => sanitize_text_field($_POST['prenom']),
-            'city'         => !empty($_POST['city']) ? sanitize_text_field($_POST['city']) : 'Non renseignée',
-            'source'       => 'wordpress_form',
-            'zip_code'     => sanitize_text_field($_POST['postal_code']),
-            'notification' => false,
         );
 
         $result = $wpdb->update($table_name, $data, array('id' => $id));
 
         if ($result !== false) {
-            $url_backend = 'http://172.16.0.1:8000/api/v1/visitors/' . $id;
 
-            $response = wp_remote_post($url_backend, array(
-                'method'   => 'PATCH', 
+            // === 1. Update visiteur ===
+            $data_backend = array(
+                'id'           => $id,
+                'title'        => sanitize_text_field($_POST['civilite']),
+                'name'         => sanitize_text_field(strtoupper($_POST['nom'])),
+                'surname'      => sanitize_text_field($_POST['prenom']),
+                'city'         => !empty($_POST['city']) ? sanitize_text_field($_POST['city']) : 'Non renseignée',
+                'source'       => 'wordpress_form',
+                'zip_code'     => sanitize_text_field($_POST['postal_code']),
+                'notification' => false,
+            );
+
+            $response_visitor = wp_remote_post('http://172.16.0.1:8000/api/v1/visitors/' . $id, array(
+                'method'   => 'PATCH',
                 'timeout'  => 15,
                 'blocking' => true,
-                'headers'  => array(
-                    'Content-Type' => 'application/json',
-                    'Accept'       => 'application/json',
-                ),
-                'body' => json_encode($data_backend),
+                'headers'  => array('Content-Type' => 'application/json', 'Accept' => 'application/json'),
+                'body'     => json_encode($data_backend),
             ));
 
-            if (is_wp_error($response)) {
-                error_log('Erreur réseau WordPress : ' . $response->get_error_message());
-                wp_send_json_error(array('message' => 'Erreur réseau : ' . $response->get_error_message()));
-            } else {
-                $status_code = wp_remote_retrieve_response_code($response);
-                $body        = wp_remote_retrieve_body($response);
-                error_log("=== DEBUG BACKEND ===");
-                error_log("Status: " . $status_code);
-                error_log("Body: " . $body);
-
-                if ($status_code >= 200 && $status_code < 300) {
-                    wp_send_json_success(array('message' => 'Modifications enregistrées avec succès !'));
-                } else {
-                    wp_send_json_error(array(
-                        'message' => "Le backend a refusé les données (code $status_code).",
-                        'details' => json_decode($body),
-                    ));
-                }
+            if (is_wp_error($response_visitor)) {
+                error_log('Erreur réseau visiteur : ' . $response_visitor->get_error_message());
+                wp_send_json_error(array('message' => 'Erreur réseau visiteur.'));
+                wp_die();
             }
+
+            $status_visitor = wp_remote_retrieve_response_code($response_visitor);
+            $body_visitor   = wp_remote_retrieve_body($response_visitor);
+            error_log("=== DEBUG BACKEND VISITEUR === Status: $status_visitor | Body: $body_visitor");
+
+            if ($status_visitor < 200 || $status_visitor >= 300) {
+                wp_send_json_error(array(
+                    'message' => "Backend visiteur refusé (code $status_visitor).",
+                    'details' => json_decode($body_visitor),
+                ));
+                wp_die();
+            }
+
+            // === 2. Update item ===
+            $data_backend_item = array(
+                'weight'        => !empty($_POST['poids_objet']) ? sanitize_text_field($_POST['poids_objet']) : '',
+                'age'           => !empty($_POST['age_objet'])   ? sanitize_text_field($_POST['age_objet'])   : '',
+                'name'          => !empty($_POST['nom_objet'])   ? sanitize_text_field($_POST['nom_objet'])   : '',
+                'is_electrique' => !empty($_POST['est_electrique']) ? sanitize_text_field($_POST['est_electrique']) : '',
+                'brand'         => !empty($_POST['marque'])      ? sanitize_text_field($_POST['marque'])      : '',
+            );
+
+            $response_item = wp_remote_post('http://172.16.0.1:8000/api/v1/items/' .$id , array(
+                'method'   => 'PATCH',
+                'timeout'  => 15,
+                'blocking' => true,
+                'headers'  => array('Content-Type' => 'application/json', 'Accept' => 'application/json'),
+                'body'     => json_encode($data_backend_item),
+            ));
+
+            $status_item = wp_remote_retrieve_response_code($response_item);
+            $body_item   = wp_remote_retrieve_body($response_item);
+            error_log("=== DEBUG BACKEND ITEM UPDATE === Status: $status_item | Body: $body_item");
+
+            if (is_wp_error($response_item) || $status_item < 200 || $status_item >= 300) {
+                wp_send_json_error(array(
+                    'message' => "Backend item refusé (code $status_item).",
+                    'details' => json_decode($body_item),
+                ));
+                wp_die();
+            }
+
+            // === 3. Succès final ===
+            wp_send_json_success(array('message' => 'Modifications enregistrées avec succès !'));
+
         } else {
-            wp_send_json_error(array('message' => 'Erreur lors de la mise à jour en base.'));
+            wp_send_json_error(array('message' => "Erreur lors de la mise à jour en base."));
         }
 
         wp_die();
@@ -567,7 +669,8 @@ class Formulaire_Visiteur {
                     <tr>
                         <th>ID</th><th>Civilité</th><th>Nom</th><th>Prénom</th>
                         <th>Email</th><th>Téléphone</th><th>Code postal</th><th>Ville</th>
-                        <th>Catégorie</th><th>Électrique</th><th>Description Problème</th><th>Date</th>
+                        <th>Catégorie</th><th>Électrique</th><th>Nom objet</th><th>Marque</th><th>Âge</th><th>Poids</th>
+                        <th>Description Problème</th><th>Date</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -583,6 +686,10 @@ class Formulaire_Visiteur {
                         <td><?php echo esc_html($v->city); ?></td>
                         <td><?php echo esc_html($v->objet); ?></td>
                         <td><?php echo esc_html($v->est_electrique); ?></td>
+                        <td><?php echo esc_html($v->nom_objet); ?></td>
+                        <td><?php echo esc_html($v->marque); ?></td>
+                        <td><?php echo esc_html($v->age_objet); ?></td>
+                        <td><?php echo esc_html($v->poids_objet); ?></td>
                         <td><?php echo esc_html($v->description_probleme); ?></td>
                         <td><?php echo esc_html($v->date_creation); ?></td>
                     </tr>
