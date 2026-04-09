@@ -1,7 +1,7 @@
 <?php
 /**
- * Plugin Name: Formulaire Visiteur
- * Description: Formulaire multi-étapes pour l'enregistrement des visiteurs
+ * Plugin Name: Visitor Form
+ * Description: Multi-step form for visitor registration
  * Version: 1.1.0
  * Text Domain: formulaire-visiteur
  */
@@ -39,7 +39,6 @@ class Formulaire_Visiteur {
             prenom varchar(100) NOT NULL,
             email varchar(100) NOT NULL DEFAULT '',
             numero_telephone varchar(20),
-            objet varchar(255) NOT NULL,
             postal_code varchar(10) NOT NULL DEFAULT '',
             city varchar(100) NOT NULL DEFAULT '',
             nom_objet varchar(100) NOT NULL DEFAULT '',
@@ -58,7 +57,7 @@ class Formulaire_Visiteur {
     
     public function enqueue_scripts() {
         wp_enqueue_style('formulaire-visiteur-css', plugin_dir_url(__FILE__) . 'css/style.css');
-        wp_enqueue_script('formulaire-visiteur-js', plugin_dir_url(__FILE__) . 'js/script.js', array('jquery'), '1.2.0', true);
+        wp_enqueue_script('formulaire-visiteur-js', plugin_dir_url(__FILE__) . 'js/script.js', array('jquery'), '1.2.1', true);
         wp_localize_script('formulaire-visiteur-js', 'formData', array(
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce'    => wp_create_nonce('visitor_nonce')
@@ -121,26 +120,8 @@ class Formulaire_Visiteur {
                     </div>
                 </div>
 
-                <div class="form-card" data-step="4">
-                    <h2 class="form-title">Formulaire Visiteur</h2>
-                    <div class="form-content">
-                        <div class="form-group">
-                            <label class="form-label">Catégorie d'objet :</label>
-                            <select id="objet" class="form-input" required>
-                                <option value="">-- Sélectionnez une catégorie --</option>
-                                <option value="électroménagé">Électroménagé</option>
-                                <option value="vêtement">Vêtement</option>
-                                <option value="informatique">Informatique</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-buttons">
-                        <button class="btn-retour" onclick="prevStep(3)">Retour</button>
-                        <button class="btn-suivant" onclick="nextStep(5)">Suivant</button>
-                    </div>
-                </div>
 
-                <div class="form-card" data-step="5">
+                <div class="form-card" data-step="4">
                     <h2 class="form-title">Formulaire Visiteur</h2>
                     <div class="form-content">
                         <div class="form-group">
@@ -155,12 +136,12 @@ class Formulaire_Visiteur {
                         </div>
                     </div>
                     <div class="form-buttons">
-                        <button class="btn-retour" onclick="prevStep(4)">Retour</button>
-                        <button class="btn-suivant" onclick="nextStep(6)">Suivant</button>
+                        <button class="btn-retour" onclick="prevStep(3)">Retour</button>
+                        <button class="btn-suivant" onclick="nextStep(5)">Suivant</button>
                     </div>
                 </div>
 
-                <div class="form-card" data-step="6">
+                <div class="form-card" data-step="5">
                     <h2 class="form-title">Formulaire Visiteur</h2>
                     <div class="form-content">
                         <label class="form-label">L'objet est-il électrique ? :</label>
@@ -186,12 +167,12 @@ class Formulaire_Visiteur {
                         </div>
                     </div>
                     <div class="form-buttons">
-                        <button class="btn-retour" onclick="prevStep(5)">Retour</button>
-                        <button class="btn-suivant" onclick="nextStep(7)">Suivant</button>
+                        <button class="btn-retour" onclick="prevStep(4)">Retour</button>
+                        <button class="btn-suivant" onclick="nextStep(6)">Suivant</button>
                     </div>
                 </div>
 
-                <div class="form-card" data-step="7">
+                <div class="form-card" data-step="6">
                     <h2 class="form-title">Formulaire Visiteur</h2>
                     <div class="form-content">
                         <div class="form-group">
@@ -200,7 +181,7 @@ class Formulaire_Visiteur {
                         </div>
                     </div>
                     <div class="form-buttons">
-                        <button class="btn-retour" onclick="prevStep(6)">Retour</button>
+                        <button class="btn-retour" onclick="prevStep(5)">Retour</button>
                         <button class="btn-suivant" onclick="submitForm()">Envoyer</button>
                     </div>
                 </div>
@@ -278,15 +259,6 @@ class Formulaire_Visiteur {
                         <!-- Catégorie / Objet -->
                         <fieldset class="edit-section">
                             <legend>Objet</legend>
-                            <div class="form-group">
-                                <label class="form-label">Catégorie d'objet :</label>
-                                <select id="edit_objet" class="form-input">
-                                    <option value="">-- Sélectionnez une catégorie --</option>
-                                    <option value="électroménagé">Électroménagé</option>
-                                    <option value="vêtement">Vêtement</option>
-                                    <option value="informatique">Informatique</option>
-                                </select>
-                            </div>
 
                             <div class="form-group">
                                 <label class="form-label">Nom de l'objet :</label>
@@ -364,7 +336,6 @@ class Formulaire_Visiteur {
             'prenom'               => sanitize_text_field($_POST['prenom']),
             'email'                => $email,
             'numero_telephone'     => $telephone,
-            'objet'                => sanitize_text_field($_POST['objet']),
             'postal_code'          => sanitize_text_field($_POST['postal_code']),
             'city'                 => !empty($_POST['city']) ? sanitize_text_field($_POST['city']) : 'Non renseignée',
             'est_electrique'       => sanitize_text_field($_POST['est_electrique']),
@@ -386,6 +357,7 @@ class Formulaire_Visiteur {
                 'name'     => sanitize_text_field(strtoupper($_POST['nom'])),
                 'surname'  => sanitize_text_field($_POST['prenom']),
                 'city'     => !empty($_POST['city']) ? sanitize_text_field($_POST['city']) : 'Non renseignée',
+                'phone_number' => sanitize_text_field($_POST['numero_telephone']),
                 'source'   => 'wordpress_form',
                 'zip_code' => sanitize_text_field($_POST['postal_code']),
                 'email'    => $email,
@@ -422,11 +394,20 @@ class Formulaire_Visiteur {
                 'weight'        => !empty($_POST['poids_objet'])   ? sanitize_text_field($_POST['poids_objet'])   : '',
                 'age'           => !empty($_POST['age_objet'])     ? sanitize_text_field($_POST['age_objet'])     : '',
                 'name'          => !empty($_POST['nom_objet'])     ? sanitize_text_field($_POST['nom_objet'])     : '',
-                'is_electrique' => sanitize_text_field($_POST['est_electrique']),
+                'is_electric'  => sanitize_text_field($_POST['est_electrique']) === 'oui' ? true : false,
                 'brand'         => !empty($_POST['marque'])        ? sanitize_text_field($_POST['marque'])        : '',
             );
 
-            $response_item = wp_remote_post('http://172.16.0.1:8000/api/v1/visitors/' . $new_id . '/items', array(
+            $body_visitor_decoded = json_decode($body_visitor, true);
+            $backend_visitor_id = $body_visitor_decoded['id'] ?? null;
+
+            if (!$backend_visitor_id) {
+                wp_send_json_error(array('message' => 'ID visiteur backend introuvable.'));
+                wp_die();
+            }
+
+
+            $response_item = wp_remote_post('http://172.16.0.1:8000/api/v1/visitors/' . $backend_visitor_id . '/items', array(
                 'method'   => 'POST',
                 'timeout'  => 15,
                 'blocking' => true,
@@ -522,7 +503,6 @@ class Formulaire_Visiteur {
             'civilite'             => $visiteur->civilite,
             'nom'                  => $visiteur->nom,
             'prenom'               => $visiteur->prenom,
-            'objet'                => $visiteur->objet,
             'postal_code'          => $visiteur->postal_code,
             'city'                 => $visiteur->city,
             'nom_objet'            => $visiteur->nom_objet,
@@ -534,7 +514,7 @@ class Formulaire_Visiteur {
     }
 
     // -------------------------------------------------------
-    //  Mise à jour du visiteur
+    //  Update the visitor's information in the database and sync with backend
     // -------------------------------------------------------
     public function update_visitor() {
         check_ajax_referer('visitor_nonce', 'nonce');
@@ -558,7 +538,6 @@ class Formulaire_Visiteur {
             'civilite'             => sanitize_text_field($_POST['civilite']),
             'nom'                  => sanitize_text_field(strtoupper($_POST['nom'])),
             'prenom'               => sanitize_text_field($_POST['prenom']),
-            'objet'                => sanitize_text_field($_POST['objet']),
             'postal_code'          => sanitize_text_field($_POST['postal_code']),
             'city'                 => !empty($_POST['city'])        ? sanitize_text_field($_POST['city'])        : 'Non renseignée',
             'nom_objet'            => !empty($_POST['nom_objet'])   ? sanitize_text_field($_POST['nom_objet'])   : '',
@@ -572,7 +551,7 @@ class Formulaire_Visiteur {
 
         if ($result !== false) {
 
-            // === 1. Update visiteur ===
+            // === 1. Update visitor ===
             $data_backend = array(
                 'id'           => $id,
                 'title'        => sanitize_text_field($_POST['civilite']),
@@ -615,7 +594,7 @@ class Formulaire_Visiteur {
                 'weight'        => !empty($_POST['poids_objet']) ? sanitize_text_field($_POST['poids_objet']) : '',
                 'age'           => !empty($_POST['age_objet'])   ? sanitize_text_field($_POST['age_objet'])   : '',
                 'name'          => !empty($_POST['nom_objet'])   ? sanitize_text_field($_POST['nom_objet'])   : '',
-                'is_electrique' => !empty($_POST['est_electrique']) ? sanitize_text_field($_POST['est_electrique']) : '',
+                'is_electric' => !empty($_POST['est_electrique']) ? sanitize_text_field($_POST['est_electrique']) : '',
                 'brand'         => !empty($_POST['marque'])      ? sanitize_text_field($_POST['marque'])      : '',
             );
 
@@ -639,7 +618,6 @@ class Formulaire_Visiteur {
                 wp_die();
             }
 
-            // === 3. Succès final ===
             wp_send_json_success(array('message' => 'Modifications enregistrées avec succès !'));
 
         } else {
@@ -684,7 +662,6 @@ class Formulaire_Visiteur {
                         <td><?php echo esc_html($v->numero_telephone); ?></td>
                         <td><?php echo esc_html($v->postal_code); ?></td>
                         <td><?php echo esc_html($v->city); ?></td>
-                        <td><?php echo esc_html($v->objet); ?></td>
                         <td><?php echo esc_html($v->est_electrique); ?></td>
                         <td><?php echo esc_html($v->nom_objet); ?></td>
                         <td><?php echo esc_html($v->marque); ?></td>

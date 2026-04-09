@@ -1,7 +1,7 @@
 /**
- * Affiche un message d'erreur rouge sous un champ donné.
- * @param {string} fieldId   - id du champ HTML
- * @param {string} message   - texte de l'erreur (vide = effacer)
+ * Displays a red error message below a given field.
+ * @param {string} fieldId   - HTML field id
+ * @param {string} message   - error text (empty = clear)
  */
 function setFieldError(fieldId, message) {
     var field = document.getElementById(fieldId);
@@ -28,8 +28,8 @@ function setFieldError(fieldId, message) {
 }
 
 /**
- * Affiche une erreur sous un groupe de radios.
- * @param {string} groupName  - name="" des radios
+ * Displays an error below a group of radio buttons.
+ * @param {string} groupName  - name="" of the radios
  * @param {string} message
  */
 function setRadioError(groupName, message) {
@@ -64,7 +64,7 @@ function clearStepErrors(stepSelector) {
     });
 }
 
-/** Regex code postal France métropole + DOM-TOM (97100–97699) */
+/** Regex for French postal codes (mainland + overseas territories 97100–97699) */
 function isValidPostalCode(value) {
     return /^(0[1-9]|[1-8]\d|9[0-5])\d{3}$/.test(value)
         || /^97[1-6]\d{2}$/.test(value);
@@ -115,8 +115,8 @@ function prevStep(step) {
 }
 
 /**
- * Valide l'étape en cours et affiche les erreurs sous chaque champ.
- * Retourne true si tout est valide, false sinon.
+ * Validates the current step and displays errors below each field.
+ * Returns true if everything is valid, false otherwise.
  */
 function validateStep(step) {
     var selector = '#mode-inscription .form-card[data-step="' + step + '"]';
@@ -125,93 +125,104 @@ function validateStep(step) {
 
     switch (step) {
 
-        case 1: // Civilité
+        case 1: // Salutation
             if (!document.querySelector('input[name="civilite"]:checked')) {
                 setRadioError('civilite', 'Veuillez sélectionner une civilité.');
                 valid = false;
             }
             break;
 
-        case 2: // Nom / Prénom
-            var nom    = document.getElementById('nom').value.trim();
-            var prenom = document.getElementById('prenom').value.trim();
-            if (!nom) {
+        case 2: // Name / First name
+            var nom    = document.getElementById('nom');
+            var prenom = document.getElementById('prenom');
+            if (!nom || !prenom) return false;
+            
+            var nomVal    = nom.value.trim();
+            var prenomVal = prenom.value.trim();
+            
+            if (!nomVal) {
                 setFieldError('nom', 'Le nom est obligatoire.');
                 valid = false;
-            } else if (!/^[A-ZÀ-Ÿa-zà-ÿ\s\-']+$/.test(nom)) {
+            } else if (!/^[A-Za-zÀ-ÿ\s\-'.]+$/.test(nomVal)) {
                 setFieldError('nom', 'Le nom ne doit contenir que des lettres.');
                 valid = false;
             }
-            if (!prenom) {
+            if (!prenomVal) {
                 setFieldError('prenom', 'Le prénom est obligatoire.');
                 valid = false;
-            } else if (!/^[A-ZÀ-Ÿa-zà-ÿ\s\-']+$/.test(prenom)) {
+            } else if (!/^[A-Za-zÀ-ÿ\s\-'.]+$/.test(prenomVal)) {
                 setFieldError('prenom', 'Le prénom ne doit contenir que des lettres.');
                 valid = false;
             }
             break;
 
-        case 3: // Email / Téléphone
-            var email = document.getElementById('email').value.trim();
-            var tel   = document.getElementById('numero_telephone').value.trim();
-
-            if (!email && !tel) {
+        case 3: // Email / Phone
+            var email = document.getElementById('email');
+            var tel   = document.getElementById('numero_telephone');
+            if (!email || !tel) return false;
+            
+            var emailVal = email.value.trim();
+            var telVal   = tel.value.trim();
+            
+            if (!emailVal && !telVal) {
                 setFieldError('email', 'Veuillez fournir au moins un email ou un numéro de téléphone.');
                 setFieldError('numero_telephone', 'Veuillez fournir au moins un email ou un numéro de téléphone.');
                 valid = false;
             } else {
-                if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                if (emailVal && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
                     setFieldError('email', 'L\'adresse email n\'est pas valide.');
                     valid = false;
                 }
-                // Accepte les formats : 06 12 34 56 78 / 0612345678 / +33612345678
-                if (tel && !/^(\+33|0)[1-9](\d{2}){4}$/.test(tel.replace(/[\s.\-]/g, ''))) {
+                if (telVal && !/^(\+33|0)[1-9](\d{2}){4}$/.test(telVal.replace(/[\s.\-]/g, ''))) {
                     setFieldError('numero_telephone', 'Numéro invalide. Format attendu : 06 12 34 56 78 ou +33612345678.');
                     valid = false;
                 }
             }
             break;
 
-        case 4: // Catégorie objet
-            if (!document.getElementById('objet').value) {
-                setFieldError('objet', 'Veuillez sélectionner une catégorie.');
-                valid = false;
+        case 4: // Postal code / City
+            var cpEl = document.getElementById('postal_code');
+            var cityEl = document.getElementById('city');
+            if (!cpEl || !cityEl) {
+                console.error('Éléments postal_code ou city non trouvés dans le DOM');
+                return false;
             }
-            break;
-
-        case 5: // Code postal
-            var cp = document.getElementById('postal_code').value.trim();
+            
+            var cp = cpEl.value.trim();
             if (!cp) {
                 setFieldError('postal_code', 'Le code postal est obligatoire.');
                 valid = false;
             } else if (!isValidPostalCode(cp)) {
-                setFieldError('postal_code', 'Code postal invalide. Format attendu : 5 chiffres (ex: 37000 ou 97100).');
+                setFieldError('postal_code', 'Code postal invalide.');
                 valid = false;
             }
-            var city = document.getElementById('city').value.trim();
+            var city = cityEl.value.trim();
             if (!city) {
                 setFieldError('city', 'La ville est obligatoire.');
                 valid = false;
-            } else if (!/^[A-ZÀ-Ÿa-zà-ÿ\s\-']+$/.test(city)) {
+            } else if (!/^[A-Za-zÀ-ÿ\s\-'.]+$/.test(city)) {
                 setFieldError('city', 'La ville ne doit contenir que des lettres.');
                 valid = false;
             }
             break;
 
-        case 6: // Objet
+        case 5: // Item 
             if (!document.querySelector('input[name="electrique"]:checked')) {
                 setRadioError('electrique', "Veuillez indiquer si l'objet est électrique.");
                 valid = false;
             }
-            var nomObjet = document.getElementById('nom_objet').value.trim();
-            if (!nomObjet) {
+            var nomObjet = document.getElementById('nom_objet');
+            if (!nomObjet) return false;
+            
+            if (!nomObjet.value.trim()) {
                 setFieldError('nom_objet', "Le nom de l'objet est obligatoire.");
                 valid = false;
             }
             break;
 
-        case 7: // Description
-            if (!document.getElementById('description_probleme').value.trim()) {
+        case 6: // Problem description
+            var descEl = document.getElementById('description_probleme');
+            if (!descEl || !descEl.value.trim()) {
                 setFieldError('description_probleme', 'Veuillez décrire le problème.');
                 valid = false;
             }
@@ -222,7 +233,7 @@ function validateStep(step) {
 }
 
 /**
- * Version asynchrone de validateStep pour les étapes nécessitant un appel AJAX.
+ * Validates step 3 (email/phone) asynchronously.
  * @param {number}   step
  * @param {function} callback(isValid)
  */
@@ -234,7 +245,7 @@ function validateStepAsync(step, callback) {
         var email = document.getElementById('email').value.trim();
         var tel   = document.getElementById('numero_telephone').value.trim();
 
-        // Validation format d'abord (synchrone)
+        // Format validation first (synchronous)
         if (!email && !tel) {
             setFieldError('email', 'Veuillez fournir au moins un email ou un numéro de téléphone.');
             setFieldError('numero_telephone', 'Veuillez fournir au moins un email ou un numéro de téléphone.');
@@ -249,8 +260,8 @@ function validateStepAsync(step, callback) {
             return callback(false);
         }
 
-        // Vérification doublon email côté serveur
-        if (!email) return callback(true); // Pas d'email = pas de doublon à vérifier
+        // Check for duplicate email on server
+        if (!email) return callback(true); // No email = no duplicate check needed
 
         jQuery.post(formData.ajax_url, {
             action: 'check_email',
@@ -270,7 +281,10 @@ function validateStepAsync(step, callback) {
 }
 
 function submitForm() {
-    if (!validateStep(7)) return;
+    if (!validateStep(6)) return;
+
+    var descEl = document.getElementById('description_probleme');
+    if (!descEl) return;
 
     var data = {
         action:               'save_visitor',
@@ -280,7 +294,6 @@ function submitForm() {
         prenom:               document.getElementById('prenom').value.trim(),
         email:                document.getElementById('email').value.trim(),
         numero_telephone:     document.getElementById('numero_telephone').value.trim(),
-        objet:                document.getElementById('objet').value,
         postal_code:          document.getElementById('postal_code').value.trim(),
         city:                 document.getElementById('city').value.trim(),
         est_electrique:       document.querySelector('input[name="electrique"]:checked').value,
@@ -288,7 +301,7 @@ function submitForm() {
         marque:      document.getElementById('marque').value.trim(),
         age_objet:   document.getElementById('age_objet').value.trim(),
         poids_objet: document.getElementById('poids_objet').value.trim(),
-        description_probleme: document.getElementById('description_probleme').value.trim()
+        description_probleme: descEl.value.trim()
     };
 
     jQuery.post(formData.ajax_url, data, function(response) {
@@ -359,7 +372,6 @@ function findVisitor() {
             document.getElementById('edit_visitor_id').value           = v.id;
             document.getElementById('edit_nom').value                  = v.nom;
             document.getElementById('edit_prenom').value               = v.prenom;
-            document.getElementById('edit_objet').value                = v.objet;
             document.getElementById('edit_postal_code').value          = v.postal_code;
             document.getElementById('edit_city').value                 = v.city;
             document.getElementById('edit_nom_objet').value            = v.nom_objet   || '';
@@ -391,33 +403,40 @@ function updateVisitor() {
     }
 
     // Nom
-    var nom = document.getElementById('edit_nom').value.trim();
+    var nomEl = document.getElementById('edit_nom');
+    if (!nomEl) return;
+    var nom = nomEl.value.trim();
     if (!nom) {
         setFieldError('edit_nom', 'Le nom est obligatoire.');
         valid = false;
-    } else if (!/^[A-ZÀ-Ÿa-zà-ÿ\s\-']+$/.test(nom)) {
+    } else if (!/^[A-Za-zÀ-ÿ\s\-'.]+$/.test(nom)) {
         setFieldError('edit_nom', 'Le nom ne doit contenir que des lettres.');
         valid = false;
     }
 
     // Prénom
-    var prenom = document.getElementById('edit_prenom').value.trim();
+    var prenomEl = document.getElementById('edit_prenom');
+    if (!prenomEl) return;
+    var prenom = prenomEl.value.trim();
     if (!prenom) {
         setFieldError('edit_prenom', 'Le prénom est obligatoire.');
         valid = false;
-    } else if (!/^[A-ZÀ-Ÿa-zà-ÿ\s\-']+$/.test(prenom)) {
+    } else if (!/^[A-Za-zÀ-ÿ\s\-'.]+$/.test(prenom)) {
         setFieldError('edit_prenom', 'Le prénom ne doit contenir que des lettres.');
         valid = false;
     }
 
     // Catégorie
-    if (!document.getElementById('edit_objet').value) {
+    var objetEl = document.getElementById('edit_objet');
+    if (!objetEl || !objetEl.value) {
         setFieldError('edit_objet', 'Veuillez sélectionner une catégorie.');
         valid = false;
     }
 
     // Code postal — obligatoire et format validé
-    var cp = document.getElementById('edit_postal_code').value.trim();
+    var cpEl = document.getElementById('edit_postal_code');
+    if (!cpEl) return;
+    var cp = cpEl.value.trim();
     if (!cp) {
         setFieldError('edit_postal_code', 'Le code postal est obligatoire.');
         valid = false;
@@ -427,29 +446,37 @@ function updateVisitor() {
     }
 
     // Ville - obligatoire et format validé
-    var city = document.getElementById('edit_city').value.trim();
+    var cityEl = document.getElementById('edit_city');
+    if (!cityEl) return;
+    var city = cityEl.value.trim();
     if (!city) {
         setFieldError('edit_city', 'La ville est obligatoire.');
         valid = false;
-    } else if (!/^[A-ZÀ-Ÿa-zà-ÿ\s\-']+$/.test(city)) {
+    } else if (!/^[A-Za-zÀ-ÿ\s\-'.]+$/.test(city)) {
         setFieldError('edit_city', 'La ville ne doit contenir que des lettres.');
         valid = false;
     }
 
     // Objet 
-    var nomObjet = document.getElementById('edit_nom_objet').value.trim();
+    var nomObjetEl = document.getElementById('edit_nom_objet');
+    if (!nomObjetEl) return;
+    var nomObjet = nomObjetEl.value.trim();
     if (!nomObjet) {
         setFieldError('edit_nom_objet', "Le nom de l'objet est obligatoire.");
         valid = false;
     }
-    var ageObjet = document.getElementById('edit_age_objet').value.trim();
+    
+    var ageObjetEl = document.getElementById('edit_age_objet');
+    if (!ageObjetEl) return;
+    var ageObjet = ageObjetEl.value.trim();
     if (!ageObjet) {
         setFieldError('edit_age_objet', "L'age de l'objet est obligatoire.");
         valid = false;
     }
 
     // Description
-    if (!document.getElementById('edit_description_probleme').value.trim()) {
+    var descEl = document.getElementById('edit_description_probleme');
+    if (!descEl || !descEl.value.trim()) {
         setFieldError('edit_description_probleme', 'Veuillez décrire le problème.');
         valid = false;
     }
@@ -461,16 +488,15 @@ function updateVisitor() {
         nonce:                formData.nonce,
         id:                   document.getElementById('edit_visitor_id').value,
         civilite:             document.querySelector('input[name="edit_civilite"]:checked').value,
-        nom:                  document.getElementById('edit_nom').value.trim(),
-        prenom:               document.getElementById('edit_prenom').value.trim(),
-        objet:                document.getElementById('edit_objet').value,
-        postal_code:          document.getElementById('edit_postal_code').value.trim(),
-        city:                 document.getElementById('edit_city').value.trim(),
-        nom_objet:   document.getElementById('edit_nom_objet').value.trim(),
-        marque:      document.getElementById('edit_marque').value.trim(),
-        age_objet:   document.getElementById('edit_age_objet').value.trim(),
-        poids_objet: document.getElementById('edit_poids_objet').value.trim(),
-        description_probleme: document.getElementById('edit_description_probleme').value.trim()
+        nom:                  nomEl.value.trim(),
+        prenom:               prenomEl.value.trim(),
+        postal_code:          cpEl.value.trim(),
+        city:                 cityEl.value.trim(),
+        nom_objet:            nomObjetEl.value.trim(),
+        marque:               document.getElementById('edit_marque') ? document.getElementById('edit_marque').value.trim() : '',
+        age_objet:            ageObjetEl.value.trim(),
+        poids_objet:          document.getElementById('edit_poids_objet') ? document.getElementById('edit_poids_objet').value.trim() : '',
+        description_probleme: descEl.value.trim()
     }, function(response) {
         if (response.success) {
             showMessage('editUpdateMessage', response.data.message, true);
