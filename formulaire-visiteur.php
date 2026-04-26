@@ -14,9 +14,9 @@ class Formulaire_Visiteur {
 
     // Fixed API key for authenticated backend calls
     private const API_BASE       = 'http://172.16.0.1:8000/api/v1';
-    private const API_LOGIN      = 'votre_login';
-    private const API_PASSWORD   = 'votre_mot_de_passe';
-
+    private const API_LOGIN    = 'admin';
+    private const API_PASSWORD = 'password';
+    
     public function __construct() {
         add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'));
         add_shortcode('formulaire_visiteur', array($this, 'render_form'));
@@ -73,6 +73,13 @@ class Formulaire_Visiteur {
             'headers' => array('Content-Type' => 'application/json', 'Accept' => 'application/json'),
             'body'    => json_encode(array('email' => $email)),
         ));
+
+        if (is_wp_error($token_response)) {
+            error_log('FV request_edit_link WP_Error: ' . $token_response->get_error_message());
+            wp_send_json_error(array('message' => 'Erreur réseau : ' . $token_response->get_error_message()));
+            wp_die();
+        }
+
 
         if (is_wp_error($token_response)) {
             wp_send_json_error(array('message' => 'Erreur réseau. Veuillez réessayer.'));
@@ -201,6 +208,7 @@ class Formulaire_Visiteur {
                             <label class="form-label">Nom (en MAJUSCULE) :</label>
                             <input type="text" id="nom" class="form-input" required>
                         </div>
+                    
                         <div class="form-group">
                             <label class="form-label">Prénom :</label>
                             <input type="text" id="prenom" class="form-input" required>
@@ -573,7 +581,15 @@ class Formulaire_Visiteur {
             'email'        => $email,
         );
 
-        $response_visitor = $this->api_request('POST', '/visitors', $data_backend);
+        $response_visitor = wp_remote_post(self::API_BASE . '/visitors', array(
+            'method'  => 'POST',
+            'timeout' => 15,
+            'headers' => array(
+                'Content-Type' => 'application/json',
+                'Accept'       => 'application/json',
+            ),
+            'body' => json_encode($data_backend),
+        ));
 
         if (is_wp_error($response_visitor)) {
             wp_send_json_error(array('message' => 'Erreur réseau visiteur.')); wp_die();
@@ -581,9 +597,29 @@ class Formulaire_Visiteur {
 
         $status_visitor = wp_remote_retrieve_response_code($response_visitor);
         $body_visitor   = wp_remote_retrieve_body($response_visitor);
+        
+        error_log('Visitor status: ' . $status_visitor);
+        error_log('Visitor body: ' . $body_visitor);
 
         if ($status_visitor < 200 || $status_visitor >= 300) {
-            wp_send_json_error(array('message' => "Backend visiteur refusé (code $status_visitor).")); wp_die();
+            $error_body = json_decode($body_visitor, true);
+            if (
+                isset($error_body['message']) &&
+                str_contains($error_body['message'], 'Duplicate entry')
+            ) {
+                // Synchronise la base locale pour les prochaines fois
+                $wpdb->insert($table_name, array(
+                    'email' => $email,
+                    // champs minimaux pour éviter le doublon futur
+                ));
+                wp_send_json_error(array(
+                    'field'   => 'email',
+                    'message' => 'Cette adresse email est déjà utilisée. Utilisez "Recevoir mon lien de modification" pour modifier votre fiche.'
+                ));
+            } else {
+                wp_send_json_error(array('message' => "Erreur backend (code $status_visitor)."));
+            }
+            wp_die();
         }
 
         $backend_visitor_id = json_decode($body_visitor, true)['id'] ?? null;
@@ -600,11 +636,33 @@ class Formulaire_Visiteur {
             'brand'       => sanitize_text_field($_POST['marque']      ?? ''),
         );
 
-        $response_item = $this->api_request('POST', '/visitors/' . $backend_visitor_id . '/items', $data_item);
+        $response_item = wp_remote_post(self::API_BASE . '/visitors/' . $backend_visitor_id . '/items', array(
+            'method'  => 'POST',
+            'timeout' => 15,
+            'headers' => array(
+                'Content-Type' => 'application/json',
+                'Accept'       => 'application/json',
+            ),
+            'body' => json_encode($data_item),
+        ));
         $status_item   = wp_remote_retrieve_response_code($response_item);
+        
+        error_log('Item status: ' . $status_item);
+        error_log('Item body: ' . $body_item);
 
         if (is_wp_error($response_item) || $status_item < 200 || $status_item >= 300) {
             wp_send_json_error(array('message' => "Backend item refusé (code $status_item).")); wp_die();
+        }
+
+        if ($status_visitor === 422 || $status_visitor === 500) {
+            $error_body = json_decode($body_visitor, true);
+            if (isset($error_body['message']) && str_contains($error_body['message'], 'Duplicate entry')) {
+                wp_send_json_error(array(
+                    'field'   => 'email',
+                    'message' => 'Cette adresse email est déjà utilisée.'
+                ));
+                wp_die();
+            }
         }
 
         wp_send_json_success(array('message' => 'Visiteur enregistré avec succès !'));
