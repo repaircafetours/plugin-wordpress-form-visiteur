@@ -29,10 +29,72 @@ class Formulaire_Visiteur {
         add_action('wp_ajax_nopriv_get_visitor',    array($this, 'get_visitor'));
         add_action('wp_ajax_update_visitor',        array($this, 'update_visitor'));
         add_action('wp_ajax_nopriv_update_visitor', array($this, 'update_visitor'));
+        add_action('wp_ajax_request_edit_link',         array($this, 'request_edit_link'));
+        add_action('wp_ajax_nopriv_request_edit_link',  array($this, 'request_edit_link'));
 
         add_action('admin_menu', array($this, 'add_admin_menu'));
         add_action('admin_init', array($this, 'create_table'));
         register_activation_hook(__FILE__, array($this, 'create_table'));
+    }
+
+    // -------------------------------------------------------
+    //  AJAX : demande de lien de modification par le visiteur
+    // -------------------------------------------------------
+    public function request_edit_link() {
+        check_ajax_referer('visitor_nonce', 'nonce');
+
+        $email = !empty($_POST['email']) ? sanitize_email($_POST['email']) : '';
+
+        if (empty($email)) {
+            wp_send_json_error(array('message' => 'Veuillez fournir une adresse email.'));
+            wp_die();
+        }
+
+        // Tente un login — si ça réussit c'est un bénévole, on ne fait rien
+        $login_response = wp_remote_post(self::API_BASE . '/auth/login', array(
+            'method'  => 'POST',
+            'timeout' => 15,
+            'headers' => array('Content-Type' => 'application/json', 'Accept' => 'application/json'),
+            'body'    => json_encode(array('login' => $email, 'password' => '')),
+        ));
+
+        $login_status = wp_remote_retrieve_response_code($login_response);
+
+        // Si le login réussit (ne devrait pas arriver avec mdp vide, mais sécurité)
+        if ($login_status === 200) {
+            wp_send_json_success(array('message' => 'Si un compte existe avec cet email, vous recevrez un lien.'));
+            wp_die();
+        }
+
+        // Login échoue → c'est un visiteur ordinaire → on demande l'envoi du lien
+        $token_response = wp_remote_post(self::API_BASE . '/visitors/token', array(
+            'method'  => 'POST',
+            'timeout' => 15,
+            'headers' => array('Content-Type' => 'application/json', 'Accept' => 'application/json'),
+            'body'    => json_encode(array('email' => $email)),
+        ));
+
+        if (is_wp_error($token_response)) {
+            wp_send_json_error(array('message' => 'Erreur réseau. Veuillez réessayer.'));
+            wp_die();
+        }
+
+        $token_status = wp_remote_retrieve_response_code($token_response);
+
+        // 404 = aucun visiteur avec cet email
+        if ($token_status === 404) {
+            wp_send_json_error(array('message' => 'Aucun compte trouvé avec cet email.'));
+            wp_die();
+        }
+
+        if ($token_status < 200 || $token_status >= 300) {
+            wp_send_json_error(array('message' => 'Erreur lors de l\'envoi du lien.'));
+            wp_die();
+        }
+
+        // Succès — le backend a envoyé l'email
+        wp_send_json_success(array('message' => 'Un lien de modification vous a été envoyé par email. Vérifiez votre boîte mail.'));
+        wp_die();
     }
 
     // -------------------------------------------------------
@@ -231,6 +293,15 @@ class Formulaire_Visiteur {
                 </div>
 
                 <div class="form-message" id="formMessage"></div>
+
+                <div class="mode-switch">
+                    <p>Déjà inscrit ?</p>
+                    <div class="form-group">
+                        <input type="email" id="edit_request_email" class="form-input" placeholder="votre@email.com">
+                    </div>
+                    <button class="btn-suivant" onclick="requestEditLink()">Recevoir mon lien de modification</button>
+                    <div class="form-message" id="editRequestMessage"></div>
+                </div>
 
             </div><!-- /mode-inscription -->
 

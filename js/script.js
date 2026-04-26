@@ -362,9 +362,54 @@ function validateStepAsync(step, callback) {
 }
 
 // -------------------------------------------------------
-//  Soumission inscription
+//  Demande de lien de modification
 // -------------------------------------------------------
 
+function requestEditLink() {
+    hideMessage('editRequestMessage');
+
+    var email = document.getElementById('edit_request_email').value.trim();
+
+    if (!email) {
+        showMessage('editRequestMessage', 'Veuillez saisir votre adresse email.', false);
+        return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        showMessage('editRequestMessage', "L'adresse email n'est pas valide.", false);
+        return;
+    }
+
+    // Désactive le bouton pendant la requête
+    var btn = event.target;
+    btn.disabled = true;
+    btn.textContent = 'Envoi en cours...';
+
+    jQuery.post(formData.ajax_url, {
+        action: 'request_edit_link',
+        nonce:  formData.nonce,
+        email:  email
+    }, function(response) {
+        btn.disabled = false;
+        btn.textContent = 'Recevoir mon lien de modification';
+
+        if (response.success) {
+            showMessage('editRequestMessage', response.data.message, true);
+            document.getElementById('edit_request_email').value = '';
+        } else {
+            showMessage('editRequestMessage', response.data.message, false);
+        }
+    }).fail(function() {
+        btn.disabled = false;
+        btn.textContent = 'Recevoir mon lien de modification';
+        showMessage('editRequestMessage', 'Erreur réseau. Veuillez réessayer.', false);
+    });
+}
+
+
+// -------------------------------------------------------
+//  Soumission inscription
+// -------------------------------------------------------
 function submitForm() {
     if (!validateStep(6)) return;
 
