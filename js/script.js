@@ -1,21 +1,18 @@
-/**
- * Displays a red error message below a given field.
- * @param {string} fieldId   - HTML field id
- * @param {string} message   - error text (empty = clear)
- */
+// -------------------------------------------------------
+//  Utilities: field messages and errors
+// -------------------------------------------------------
+
 function setFieldError(fieldId, message) {
     var field = document.getElementById(fieldId);
     if (!field) return;
-
-    var errorId  = fieldId + '_error';
-    var errorEl  = document.getElementById(errorId);
+    var errorId = fieldId + '_error';
+    var errorEl = document.getElementById(errorId);
     if (!errorEl) {
-        errorEl    = document.createElement('span');
+        errorEl = document.createElement('span');
         errorEl.id = errorId;
         errorEl.className = 'field-error';
         field.parentNode.insertBefore(errorEl, field.nextSibling);
     }
-
     if (message) {
         errorEl.textContent   = message;
         errorEl.style.display = 'block';
@@ -27,16 +24,11 @@ function setFieldError(fieldId, message) {
     }
 }
 
-/**
- * Displays an error below a group of radio buttons.
- * @param {string} groupName  - name="" of the radios
- * @param {string} message
- */
 function setRadioError(groupName, message) {
     var errorId = 'radio_' + groupName + '_error';
     var errorEl = document.getElementById(errorId);
     if (!errorEl) {
-        errorEl    = document.createElement('span');
+        errorEl = document.createElement('span');
         errorEl.id = errorId;
         errorEl.className = 'field-error';
         var group = document.querySelector('[name="' + groupName + '"]');
@@ -64,7 +56,6 @@ function clearStepErrors(stepSelector) {
     });
 }
 
-/** Regex for French postal codes (mainland + overseas territories 97100–97699) */
 function isValidPostalCode(value) {
     return /^(0[1-9]|[1-8]\d|9[0-5])\d{3}$/.test(value)
         || /^97[1-6]\d{2}$/.test(value);
@@ -77,47 +68,48 @@ function showMessage(elementId, message, isSuccess) {
     el.className     = 'form-message ' + (isSuccess ? 'success' : 'error');
     el.style.display = 'block';
 }
+
 function hideMessage(elementId) {
     var el = document.getElementById(elementId);
     if (el) { el.style.display = 'none'; el.textContent = ''; }
 }
 
+// -------------------------------------------------------
+//  Registration navigation (multi-steps)
+// -------------------------------------------------------
 
 function nextStep(step) {
     var currentStep = step - 1;
-
     if (currentStep === 3) {
         validateStepAsync(3, function(valid) {
-            if (!valid) return;
-            goToStep(step);
+            if (valid) goToStep(step);
         });
         return;
     }
-
     if (!validateStep(currentStep)) return;
     goToStep(step);
 }
 
 function goToStep(step) {
-    document.querySelectorAll('#mode-inscription .form-card').forEach(function(card) {
-        card.classList.remove('active');
+    document.querySelectorAll('#mode-inscription .form-card').forEach(function(c) {
+        c.classList.remove('active');
     });
     var next = document.querySelector('#mode-inscription .form-card[data-step="' + step + '"]');
     if (next) next.classList.add('active');
 }
 
 function prevStep(step) {
-    document.querySelectorAll('#mode-inscription .form-card').forEach(function(card) {
-        card.classList.remove('active');
+    document.querySelectorAll('#mode-inscription .form-card').forEach(function(c) {
+        c.classList.remove('active');
     });
     var prev = document.querySelector('#mode-inscription .form-card[data-step="' + step + '"]');
     if (prev) prev.classList.add('active');
 }
 
-/**
- * Validates the current step and displays errors below each field.
- * Returns true if everything is valid, false otherwise.
- */
+// -------------------------------------------------------
+//  Registration step validation
+// -------------------------------------------------------
+
 function validateStep(step) {
     var selector = '#mode-inscription .form-card[data-step="' + step + '"]';
     clearStepErrors(selector);
@@ -125,52 +117,46 @@ function validateStep(step) {
 
     switch (step) {
 
-        case 1: // Salutation
+        case 1:
             if (!document.querySelector('input[name="civilite"]:checked')) {
                 setRadioError('civilite', 'Veuillez sélectionner une civilité.');
                 valid = false;
             }
             break;
 
-        case 2: // Name / First name
+        case 2:
             var nom    = document.getElementById('nom');
             var prenom = document.getElementById('prenom');
             if (!nom || !prenom) return false;
-            
-            var nomVal    = nom.value.trim();
-            var prenomVal = prenom.value.trim();
-            
-            if (!nomVal) {
+            if (!nom.value.trim()) {
                 setFieldError('nom', 'Le nom est obligatoire.');
                 valid = false;
-            } else if (!/^[A-Za-zÀ-ÿ\s\-'.]+$/.test(nomVal)) {
+            } else if (!/^[A-Za-zÀ-ÿ\s\-'.]+$/.test(nom.value.trim())) {
                 setFieldError('nom', 'Le nom ne doit contenir que des lettres.');
                 valid = false;
             }
-            if (!prenomVal) {
+            if (!prenom.value.trim()) {
                 setFieldError('prenom', 'Le prénom est obligatoire.');
                 valid = false;
-            } else if (!/^[A-Za-zÀ-ÿ\s\-'.]+$/.test(prenomVal)) {
+            } else if (!/^[A-Za-zÀ-ÿ\s\-'.]+$/.test(prenom.value.trim())) {
                 setFieldError('prenom', 'Le prénom ne doit contenir que des lettres.');
                 valid = false;
             }
             break;
 
-        case 3: // Email / Phone
+        case 3:
             var email = document.getElementById('email');
             var tel   = document.getElementById('numero_telephone');
             if (!email || !tel) return false;
-            
             var emailVal = email.value.trim();
             var telVal   = tel.value.trim();
-            
             if (!emailVal && !telVal) {
                 setFieldError('email', 'Veuillez fournir au moins un email ou un numéro de téléphone.');
                 setFieldError('numero_telephone', 'Veuillez fournir au moins un email ou un numéro de téléphone.');
                 valid = false;
             } else {
                 if (emailVal && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
-                    setFieldError('email', 'L\'adresse email n\'est pas valide.');
+                    setFieldError('email', "L'adresse email n'est pas valide.");
                     valid = false;
                 }
                 if (telVal && !/^(\+33|0)[1-9](\d{2}){4}$/.test(telVal.replace(/[\s.\-]/g, ''))) {
@@ -180,15 +166,12 @@ function validateStep(step) {
             }
             break;
 
-        case 4: // Postal code / City
-            var cpEl = document.getElementById('postal_code');
+        case 4:
+            var cpEl   = document.getElementById('postal_code');
             var cityEl = document.getElementById('city');
-            if (!cpEl || !cityEl) {
-                console.error('Éléments postal_code ou city non trouvés dans le DOM');
-                return false;
-            }
-            
-            var cp = cpEl.value.trim();
+            if (!cpEl || !cityEl) return false;
+            var cp   = cpEl.value.trim();
+            var city = cityEl.value.trim();
             if (!cp) {
                 setFieldError('postal_code', 'Le code postal est obligatoire.');
                 valid = false;
@@ -196,7 +179,6 @@ function validateStep(step) {
                 setFieldError('postal_code', 'Code postal invalide.');
                 valid = false;
             }
-            var city = cityEl.value.trim();
             if (!city) {
                 setFieldError('city', 'La ville est obligatoire.');
                 valid = false;
@@ -206,21 +188,19 @@ function validateStep(step) {
             }
             break;
 
-        case 5: // Item 
+        case 5:
             if (!document.querySelector('input[name="electrique"]:checked')) {
                 setRadioError('electrique', "Veuillez indiquer si l'objet est électrique.");
                 valid = false;
             }
             var nomObjet = document.getElementById('nom_objet');
-            if (!nomObjet) return false;
-            
-            if (!nomObjet.value.trim()) {
+            if (!nomObjet || !nomObjet.value.trim()) {
                 setFieldError('nom_objet', "Le nom de l'objet est obligatoire.");
                 valid = false;
             }
             break;
 
-        case 6: // Problem description
+        case 6:
             var descEl = document.getElementById('description_probleme');
             if (!descEl || !descEl.value.trim()) {
                 setFieldError('description_probleme', 'Veuillez décrire le problème.');
@@ -232,11 +212,6 @@ function validateStep(step) {
     return valid;
 }
 
-/**
- * Validates step 3 (email/phone) asynchronously.
- * @param {number}   step
- * @param {function} callback(isValid)
- */
 function validateStepAsync(step, callback) {
     var selector = '#mode-inscription .form-card[data-step="' + step + '"]';
     clearStepErrors(selector);
@@ -245,7 +220,6 @@ function validateStepAsync(step, callback) {
         var email = document.getElementById('email').value.trim();
         var tel   = document.getElementById('numero_telephone').value.trim();
 
-        // Format validation first (synchronous)
         if (!email && !tel) {
             setFieldError('email', 'Veuillez fournir au moins un email ou un numéro de téléphone.');
             setFieldError('numero_telephone', 'Veuillez fournir au moins un email ou un numéro de téléphone.');
@@ -259,9 +233,7 @@ function validateStepAsync(step, callback) {
             setFieldError('numero_telephone', 'Numéro invalide. Format attendu : 06 12 34 56 78 ou +33612345678.');
             return callback(false);
         }
-
-        // Check for duplicate email on server
-        if (!email) return callback(true); // No email = no duplicate check needed
+        if (!email) return callback(true);
 
         jQuery.post(formData.ajax_url, {
             action: 'check_email',
@@ -280,11 +252,12 @@ function validateStepAsync(step, callback) {
     }
 }
 
+// -------------------------------------------------------
+//  Registration submission
+// -------------------------------------------------------
+
 function submitForm() {
     if (!validateStep(6)) return;
-
-    var descEl = document.getElementById('description_probleme');
-    if (!descEl) return;
 
     var data = {
         action:               'save_visitor',
@@ -297,11 +270,11 @@ function submitForm() {
         postal_code:          document.getElementById('postal_code').value.trim(),
         city:                 document.getElementById('city').value.trim(),
         est_electrique:       document.querySelector('input[name="electrique"]:checked').value,
-        nom_objet:   document.getElementById('nom_objet').value.trim(),
-        marque:      document.getElementById('marque').value.trim(),
-        age_objet:   document.getElementById('age_objet').value.trim(),
-        poids_objet: document.getElementById('poids_objet').value.trim(),
-        description_probleme: descEl.value.trim()
+        nom_objet:            document.getElementById('nom_objet').value.trim(),
+        marque:               document.getElementById('marque').value.trim(),
+        age_objet:            document.getElementById('age_objet').value.trim(),
+        poids_objet:          document.getElementById('poids_objet').value.trim(),
+        description_probleme: document.getElementById('description_probleme').value.trim()
     };
 
     jQuery.post(formData.ajax_url, data, function(response) {
@@ -316,28 +289,59 @@ function submitForm() {
     });
 }
 
-
+// -------------------------------------------------------
+//  DOMContentLoaded: listeners
+// -------------------------------------------------------
 
 document.addEventListener('DOMContentLoaded', function () {
 
+    // Switch to edit mode
     document.getElementById('switchToEdit').addEventListener('click', function(e) {
         e.preventDefault();
         document.getElementById('mode-inscription').style.display  = 'none';
         document.getElementById('mode-modification').style.display = 'block';
         showEditStep(1);
         hideMessage('editSearchMessage');
+        hideMessage('editTokenMessage');
         hideMessage('editUpdateMessage');
     });
 
+    // Return to registration
     document.getElementById('switchToRegister').addEventListener('click', function() {
         document.getElementById('mode-modification').style.display = 'none';
         document.getElementById('mode-inscription').style.display  = 'block';
     });
+
+    // Resend code
+    document.getElementById('resendToken').addEventListener('click', function(e) {
+        e.preventDefault();
+        hideMessage('editTokenMessage');
+
+        var email = document.getElementById('edit_email_search').value.trim();
+        var phone = document.getElementById('edit_phone_search').value.trim();
+
+        jQuery.post(formData.ajax_url, {
+            action: 'send_verification_token',
+            nonce:  formData.nonce,
+            email:  email,
+            phone:  phone
+        }, function(response) {
+            if (response.success) {
+                showMessage('editTokenMessage', 'Code renvoyé à ' + response.data.masked_email, true);
+            } else {
+                showMessage('editTokenMessage', response.data.message, false);
+            }
+        });
+    });
 });
 
+// -------------------------------------------------------
+//  Modification navigation (multi-steps)
+// -------------------------------------------------------
+
 function showEditStep(step) {
-    document.querySelectorAll('#mode-modification .form-card').forEach(function(card) {
-        card.classList.remove('active');
+    document.querySelectorAll('#mode-modification .form-card').forEach(function(c) {
+        c.classList.remove('active');
     });
     var target = document.querySelector('#mode-modification .form-card[data-edit-step="' + step + '"]');
     if (target) target.classList.add('active');
@@ -348,7 +352,14 @@ function backToEditSearch() {
     hideMessage('editUpdateMessage');
 }
 
+function backToEditSearchFromToken() {
+    showEditStep(1);
+    hideMessage('editTokenMessage');
+}
 
+// -------------------------------------------------------
+//  Step 1 modification: search + token sending
+// -------------------------------------------------------
 
 function findVisitor() {
     hideMessage('editSearchMessage');
@@ -362,14 +373,45 @@ function findVisitor() {
     }
 
     jQuery.post(formData.ajax_url, {
-        action: 'find_visitor',
+        action: 'send_verification_token',
         nonce:  formData.nonce,
         email:  email,
         phone:  phone
     }, function(response) {
         if (response.success) {
+            document.getElementById('edit_visitor_id').value = response.data.visitor_id;
+            document.getElementById('tokenSentToEmail').textContent =
+                'Un code de vérification a été envoyé à ' + response.data.masked_email;
+            showEditStep(2);
+        } else {
+            showMessage('editSearchMessage', response.data.message, false);
+        }
+    });
+}
+
+// -------------------------------------------------------
+//  Step 2 modification: token verification
+// -------------------------------------------------------
+
+function verifyToken() {
+    hideMessage('editTokenMessage');
+
+    var visitorId = document.getElementById('edit_visitor_id').value;
+    var token     = document.getElementById('edit_token_input').value.trim();
+
+    if (!token) {
+        showMessage('editTokenMessage', 'Veuillez saisir le code de vérification.', false);
+        return;
+    }
+
+    jQuery.post(formData.ajax_url, {
+        action:     'verify_token',
+        nonce:      formData.nonce,
+        visitor_id: visitorId,
+        token:      token
+    }, function(response) {
+        if (response.success) {
             var v = response.data;
-            document.getElementById('edit_visitor_id').value           = v.id;
             document.getElementById('edit_nom').value                  = v.nom;
             document.getElementById('edit_prenom').value               = v.prenom;
             document.getElementById('edit_postal_code').value          = v.postal_code;
@@ -378,103 +420,87 @@ function findVisitor() {
             document.getElementById('edit_marque').value               = v.marque      || '';
             document.getElementById('edit_age_objet').value            = v.age_objet   || '';
             document.getElementById('edit_poids_objet').value          = v.poids_objet || '';
-            document.getElementById('edit_description_probleme').value = v.description_probleme;
+            document.getElementById('edit_description_probleme').value = v.description_probleme || '';
 
             var civiliteInput = document.querySelector('input[name="edit_civilite"][value="' + v.civilite + '"]');
             if (civiliteInput) civiliteInput.checked = true;
 
-            showEditStep(2);
+            document.getElementById('edit_token_input').value = '';
+            showEditStep(3);
         } else {
-            showMessage('editSearchMessage', response.data.message, false);
+            showMessage('editTokenMessage', response.data.message, false);
         }
     });
 }
 
+// -------------------------------------------------------
+//  Step 3 modification: validation + sending
+// -------------------------------------------------------
+
 function updateVisitor() {
     hideMessage('editUpdateMessage');
-    clearStepErrors('#mode-modification .form-card[data-edit-step="2"]');
+    clearStepErrors('#mode-modification .form-card[data-edit-step="3"]');
     var valid = true;
-    var scope = '#mode-modification';
 
-    // Civilité
     if (!document.querySelector('input[name="edit_civilite"]:checked')) {
-        setRadioError('edit_civilite', 'Veuillez sélectionner une civilité.', scope);
+        setRadioError('edit_civilite', 'Veuillez sélectionner une civilité.');
         valid = false;
     }
 
-    // Nom
     var nomEl = document.getElementById('edit_nom');
     if (!nomEl) return;
-    var nom = nomEl.value.trim();
-    if (!nom) {
+    if (!nomEl.value.trim()) {
         setFieldError('edit_nom', 'Le nom est obligatoire.');
         valid = false;
-    } else if (!/^[A-Za-zÀ-ÿ\s\-'.]+$/.test(nom)) {
+    } else if (!/^[A-Za-zÀ-ÿ\s\-'.]+$/.test(nomEl.value.trim())) {
         setFieldError('edit_nom', 'Le nom ne doit contenir que des lettres.');
         valid = false;
     }
 
-    // Prénom
     var prenomEl = document.getElementById('edit_prenom');
     if (!prenomEl) return;
-    var prenom = prenomEl.value.trim();
-    if (!prenom) {
+    if (!prenomEl.value.trim()) {
         setFieldError('edit_prenom', 'Le prénom est obligatoire.');
         valid = false;
-    } else if (!/^[A-Za-zÀ-ÿ\s\-'.]+$/.test(prenom)) {
+    } else if (!/^[A-Za-zÀ-ÿ\s\-'.]+$/.test(prenomEl.value.trim())) {
         setFieldError('edit_prenom', 'Le prénom ne doit contenir que des lettres.');
         valid = false;
     }
 
-    // Catégorie
-    var objetEl = document.getElementById('edit_objet');
-    if (!objetEl || !objetEl.value) {
-        setFieldError('edit_objet', 'Veuillez sélectionner une catégorie.');
-        valid = false;
-    }
-
-    // Code postal — obligatoire et format validé
     var cpEl = document.getElementById('edit_postal_code');
     if (!cpEl) return;
-    var cp = cpEl.value.trim();
-    if (!cp) {
+    if (!cpEl.value.trim()) {
         setFieldError('edit_postal_code', 'Le code postal est obligatoire.');
         valid = false;
-    } else if (!isValidPostalCode(cp)) {
+    } else if (!isValidPostalCode(cpEl.value.trim())) {
         setFieldError('edit_postal_code', 'Code postal invalide. Format attendu : 5 chiffres (ex: 37000 ou 97100).');
         valid = false;
     }
 
-    // Ville - obligatoire et format validé
     var cityEl = document.getElementById('edit_city');
     if (!cityEl) return;
-    var city = cityEl.value.trim();
-    if (!city) {
+    if (!cityEl.value.trim()) {
         setFieldError('edit_city', 'La ville est obligatoire.');
         valid = false;
-    } else if (!/^[A-Za-zÀ-ÿ\s\-'.]+$/.test(city)) {
+    } else if (!/^[A-Za-zÀ-ÿ\s\-'.]+$/.test(cityEl.value.trim())) {
         setFieldError('edit_city', 'La ville ne doit contenir que des lettres.');
         valid = false;
     }
 
-    // Objet 
     var nomObjetEl = document.getElementById('edit_nom_objet');
     if (!nomObjetEl) return;
-    var nomObjet = nomObjetEl.value.trim();
-    if (!nomObjet) {
+    if (!nomObjetEl.value.trim()) {
         setFieldError('edit_nom_objet', "Le nom de l'objet est obligatoire.");
         valid = false;
     }
-    
+
     var ageObjetEl = document.getElementById('edit_age_objet');
     if (!ageObjetEl) return;
-    var ageObjet = ageObjetEl.value.trim();
-    if (!ageObjet) {
-        setFieldError('edit_age_objet', "L'age de l'objet est obligatoire.");
+    if (!ageObjetEl.value.trim()) {
+        setFieldError('edit_age_objet', "L'âge de l'objet est obligatoire.");
         valid = false;
     }
 
-    // Description
     var descEl = document.getElementById('edit_description_probleme');
     if (!descEl || !descEl.value.trim()) {
         setFieldError('edit_description_probleme', 'Veuillez décrire le problème.');
